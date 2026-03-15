@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import social.bony.nostr.Event
+import social.bony.nostr.Nip19
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -60,8 +61,10 @@ fun NoteCard(event: Event, modifier: Modifier = Modifier) {
 
 // ── Formatting helpers ────────────────────────────────────────────────────────
 
-private fun String.abbreviate(): String =
-    if (length > 16) "${take(8)}…${takeLast(8)}" else this
+private fun String.abbreviate(): String {
+    val npub = Nip19.hexToNpub(this)
+    return "${npub.take(12)}…${npub.takeLast(6)}"
+}
 
 private fun Long.formatRelative(): String {
     val now = System.currentTimeMillis() / 1000

@@ -15,6 +15,7 @@ import social.bony.account.AccountRepository
 import social.bony.account.SignerType
 import social.bony.account.signer.AmberSignerBridge
 import social.bony.account.signer.LocalKeySigner
+import social.bony.nostr.Nip19
 import javax.inject.Inject
 
 data class OnboardingUiState(
@@ -42,8 +43,13 @@ class OnboardingViewModel @Inject constructor(
                 putExtra("package", callerPackage)
             }
             amberBridge.request(intent)
-                .onSuccess { pubkey ->
-                    val account = Account(pubkey = pubkey, signerType = SignerType.AMBER)
+                .onSuccess { raw ->
+                    val hexPubkey = Nip19.normalisePubkey(raw)
+                    if (hexPubkey == null) {
+                        _uiState.update { it.copy(isLoading = false, error = "Amber returned an unrecognised pubkey format: $raw") }
+                        return@onSuccess
+                    }
+                    val account = Account(pubkey = hexPubkey, signerType = SignerType.AMBER)
                     accountRepository.addAccount(account)
                     _uiState.update { it.copy(isLoading = false, success = true) }
                 }
