@@ -75,6 +75,12 @@ class FeedViewModel @Inject constructor(
         currentSubId = pool.subscribe(listOf(filter))
 
         viewModelScope.launch { collectMessages() }
+
+        // Safety net: clear spinner after 15s even if EOSE never arrives
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(15_000)
+            _uiState.update { if (it.isLoading) it.copy(isLoading = false) else it }
+        }
     }
 
     private suspend fun collectMessages() {

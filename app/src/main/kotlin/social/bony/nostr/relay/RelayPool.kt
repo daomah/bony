@@ -84,8 +84,20 @@ class RelayPool(
             Log.d(TAG, "Connecting: $url")
             try {
                 connection.messages.collect { message ->
-                    delayMs = RECONNECT_DELAY_MS // reset backoff on successful message
-                    _messages.emit(PoolMessage(url, message))
+                    when (message) {
+                        is RelayMessage.Connected -> {
+                            // Socket is now open — replay all active subscriptions
+                            delayMs = RECONNECT_DELAY_MS
+                            activeSubscriptions.values.forEach { sub ->
+                                connection.send(ClientMessage.Req(sub.id, sub.filters))
+                            }
+                            Log.d(TAG, "Replayed ${activeSubscriptions.size} subscription(s) to $url")
+                        }
+                        else -> {
+                            delayMs = RECONNECT_DELAY_MS
+                            _messages.emit(PoolMessage(url, message))
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Collection error on $url", e)
@@ -97,11 +109,6 @@ class RelayPool(
             Log.d(TAG, "Reconnecting $url in ${delayMs}ms")
             delay(delayMs)
             delayMs = (delayMs * 2).coerceAtMost(MAX_RECONNECT_DELAY_MS)
-
-            // Re-send all active subscriptions after reconnect
-            activeSubscriptions.values.forEach { sub ->
-                connection.send(ClientMessage.Req(sub.id, sub.filters))
-            }
         }
     }
 

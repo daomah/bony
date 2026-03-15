@@ -37,6 +37,7 @@ class RelayConnection(
             override fun onOpen(ws: WebSocket, response: Response) {
                 Log.d(TAG, "Connected: $url")
                 webSocket = ws
+                trySend(RelayMessage.Connected)
             }
 
             override fun onMessage(ws: WebSocket, text: String) {

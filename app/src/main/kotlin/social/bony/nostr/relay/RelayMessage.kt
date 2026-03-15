@@ -44,6 +44,9 @@ sealed interface RelayMessage {
     /** Unparseable or unknown message — retained for debugging */
     data class Unknown(val raw: String) : RelayMessage
 
+    /** Internal: emitted by [RelayConnection] when the WebSocket handshake completes. */
+    data object Connected : RelayMessage
+
     companion object {
         private val json = Json { ignoreUnknownKeys = true }
 
