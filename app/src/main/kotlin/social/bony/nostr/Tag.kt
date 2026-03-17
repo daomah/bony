@@ -35,3 +35,18 @@ val List<Tag>.eventIds: List<String>
 
 val List<Tag>.pubkeys: List<String>
     get() = filter { it.name == "p" }.mapNotNull { it.value() }
+
+/**
+ * NIP-10: returns true if this event is a reply to another note.
+ * A note is a reply if it has any "e" tags.
+ */
+val List<Tag>.isReply: Boolean
+    get() = any { it.name == "e" }
+
+/**
+ * NIP-10: the pubkey(s) this note is replying to, in order.
+ * Uses the "p" tags which represent mentioned/notified participants.
+ * The first p-tag is conventionally the direct reply target's pubkey.
+ */
+val List<Tag>.replyToPubkeys: List<String>
+    get() = pubkeys

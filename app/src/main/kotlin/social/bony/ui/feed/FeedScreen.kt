@@ -66,6 +66,7 @@ fun FeedScreen(viewModel: FeedViewModel = hiltViewModel()) {
                         NoteCard(
                             event = event,
                             profile = profiles[event.pubkey],
+                            profiles = profiles,
                         )
                     }
                 }

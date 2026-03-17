@@ -65,7 +65,7 @@ Legend: ✅ Supported &nbsp;|&nbsp; 🚧 Partial &nbsp;|&nbsp; 🔌 Plugin &nbsp
 | [NIP-04](https://github.com/nostr-protocol/nips/blob/master/04.md) | Encrypted direct messages (legacy) | 🔌 | Deprecated; widely used |
 | [NIP-05](https://github.com/nostr-protocol/nips/blob/master/05.md) | DNS-based identifiers | planned | Verification badge on profiles |
 | [NIP-09](https://github.com/nostr-protocol/nips/blob/master/09.md) | Event deletion | planned | |
-| [NIP-10](https://github.com/nostr-protocol/nips/blob/master/10.md) | Text note references & replies | planned | Thread context |
+| [NIP-10](https://github.com/nostr-protocol/nips/blob/master/10.md) | Text note references & replies | ✅ | Reply indicator with compact context (name/npub, overflow count) |
 | [NIP-11](https://github.com/nostr-protocol/nips/blob/master/11.md) | Relay information document | planned | Relay metadata / limits |
 | [NIP-17](https://github.com/nostr-protocol/nips/blob/master/17.md) | Private direct messages | 🔌 | Replaces NIP-04 |
 | [NIP-18](https://github.com/nostr-protocol/nips/blob/master/18.md) | Reposts | planned | kind 6 |

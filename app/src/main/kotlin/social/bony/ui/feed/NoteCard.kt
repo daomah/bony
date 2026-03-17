@@ -31,6 +31,8 @@ import coil.compose.AsyncImage
 import social.bony.nostr.Event
 import social.bony.nostr.Nip19
 import social.bony.nostr.ProfileContent
+import social.bony.nostr.isReply
+import social.bony.nostr.replyToPubkeys
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -39,6 +41,7 @@ import java.time.format.DateTimeFormatter
 fun NoteCard(
     event: Event,
     profile: ProfileContent?,
+    profiles: Map<String, ProfileContent> = emptyMap(),
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
@@ -72,6 +75,27 @@ fun NoteCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            }
+        }
+
+        if (event.parsedTags.isReply) {
+            val replyTargets = event.parsedTags.replyToPubkeys
+            val replyLabel = replyTargets.take(1).joinToString { pubkey ->
+                profiles[pubkey]?.bestName?.truncate(20)
+                    ?: pubkey.abbreviateAsNpub()
+            } + if (replyTargets.size > 1) " +${replyTargets.size - 1}" else ""
+            Spacer(Modifier.height(4.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(start = 50.dp),
+            ) {
+                Text(
+                    text = "↩ $replyLabel",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
 
@@ -110,6 +134,9 @@ private fun Avatar(pictureUrl: String?, modifier: Modifier = Modifier) {
 }
 
 // ── Formatting helpers ────────────────────────────────────────────────────────
+
+private fun String.truncate(max: Int): String =
+    if (length <= max) this else "${take(max)}…"
 
 private fun String.abbreviateAsNpub(): String {
     val npub = Nip19.hexToNpub(this)
