@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import social.bony.account.AccountRepository
+import social.bony.ui.compose.ComposeScreen
 import social.bony.ui.feed.FeedScreen
 import social.bony.ui.onboarding.OnboardingScreen
 import social.bony.ui.thread.ThreadScreen
@@ -28,6 +29,7 @@ import javax.inject.Inject
 private const val ROUTE_ONBOARDING = "onboarding"
 private const val ROUTE_FEED = "feed"
 private const val ROUTE_THREAD = "thread/{eventId}"
+private const val ROUTE_COMPOSE = "compose"
 
 @Composable
 fun BonyNavHost() {
@@ -59,11 +61,17 @@ fun BonyNavHost() {
                     FeedScreen(
                         onThreadClick = { eventId ->
                             navController.navigate("thread/$eventId")
-                        }
+                        },
+                        onComposeClick = {
+                            navController.navigate(ROUTE_COMPOSE)
+                        },
                     )
                 }
                 composable(ROUTE_THREAD) {
                     ThreadScreen(onBack = { navController.popBackStack() })
+                }
+                composable(ROUTE_COMPOSE) {
+                    ComposeScreen(onBack = { navController.popBackStack() })
                 }
             }
         }

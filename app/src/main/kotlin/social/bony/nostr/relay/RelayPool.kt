@@ -65,6 +65,13 @@ class RelayPool(
         return id
     }
 
+    /** Broadcasts an event to all connected relays. */
+    fun publish(event: social.bony.nostr.Event) {
+        val msg = ClientMessage.Publish(event)
+        connections.values.forEach { it.connection.send(msg) }
+        Log.d(TAG, "Published event ${event.id.take(8)}… to ${connections.size} relay(s)")
+    }
+
     /** Sends a message to a specific relay by URL. Returns false if not connected. */
     fun send(relayUrl: String, message: ClientMessage): Boolean =
         connections[relayUrl]?.connection?.send(message) ?: false

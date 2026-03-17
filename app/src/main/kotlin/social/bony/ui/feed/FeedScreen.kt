@@ -5,15 +5,23 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import social.bony.ui.components.AccountSwitcher
@@ -22,12 +30,22 @@ import social.bony.ui.components.AccountSwitcher
 @Composable
 fun FeedScreen(
     onThreadClick: (eventId: String) -> Unit = {},
+    onComposeClick: () -> Unit = {},
     viewModel: FeedViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val activeAccount by viewModel.activeAccount.collectAsStateWithLifecycle()
     val accounts by viewModel.accounts.collectAsStateWithLifecycle()
     val profiles by viewModel.profiles.collectAsStateWithLifecycle()
+
+    val pullToRefreshState = rememberPullToRefreshState()
+
+    if (pullToRefreshState.isRefreshing) {
+        LaunchedEffect(Unit) { viewModel.refresh() }
+    }
+    LaunchedEffect(uiState.isLoading) {
+        if (!uiState.isLoading) pullToRefreshState.endRefresh()
+    }
 
     Scaffold(
         topBar = {
@@ -40,41 +58,46 @@ fun FeedScreen(
                     )
                 }
             )
-        }
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onComposeClick) {
+                Icon(Icons.Default.Edit, contentDescription = "New note")
+            }
+        },
     ) { padding ->
-        when {
-            uiState.isLoading && uiState.events.isEmpty() -> {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(padding),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator()
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .nestedScroll(pullToRefreshState.nestedScrollConnection),
+        ) {
+            when {
+                uiState.isLoading && uiState.events.isEmpty() -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
-            }
 
-            uiState.events.isEmpty() -> {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(padding),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text("No notes yet.")
+                uiState.events.isEmpty() -> {
+                    Text("No notes yet.", modifier = Modifier.align(Alignment.Center))
                 }
-            }
 
-            else -> {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(padding),
-                ) {
-                    items(uiState.events, key = { it.id }) { event ->
-                        NoteCard(
-                            event = event,
-                            profile = profiles[event.pubkey],
-                            profiles = profiles,
-                            onThreadClick = onThreadClick,
-                        )
+                else -> {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(uiState.events, key = { it.id }) { event ->
+                            NoteCard(
+                                event = event,
+                                profile = profiles[event.pubkey],
+                                profiles = profiles,
+                                onThreadClick = onThreadClick,
+                            )
+                        }
                     }
                 }
             }
+
+            PullToRefreshContainer(
+                state = pullToRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter),
+            )
         }
     }
 }

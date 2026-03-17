@@ -72,16 +72,25 @@ class FeedViewModel @Inject constructor(
 
     // ── Feed loading ──────────────────────────────────────────────────────────
 
-    private fun loadFeed(account: Account) {
+    fun refresh() {
+        val account = activeAccount.value ?: return
+        loadFeed(account, clearEvents = false)
+    }
+
+    private fun loadFeed(account: Account, clearEvents: Boolean = true) {
         collectJob?.cancel()
         feedSubId?.let { pool.unsubscribe(it) }
         followSubId?.let { pool.unsubscribe(it) }
         metadataSubId?.let { pool.unsubscribe(it) }
         relayListSubId?.let { pool.unsubscribe(it) }
 
-        _uiState.update { it.copy(events = emptyList(), isLoading = true, error = null) }
+        _uiState.update {
+            if (clearEvents) it.copy(events = emptyList(), isLoading = true, error = null)
+            else it.copy(isLoading = true, error = null)
+        }
 
-        // Preload cached events from DB so feed isn't blank on restart
+        // Preload cached events from DB so feed isn't blank on restart.
+        // Also eagerly fetch metadata for their authors so names resolve immediately.
         viewModelScope.launch {
             val cached = eventRepository.getRecentFeedEvents()
             if (cached.isNotEmpty()) {
@@ -91,6 +100,11 @@ class FeedViewModel @Inject constructor(
                         .sortedByDescending { it.createdAt }
                     state.copy(events = merged)
                 }
+                val cachedPubkeys = cached.map { it.pubkey }.distinct()
+                metadataSubId?.let { pool.unsubscribe(it) }
+                metadataSubId = pool.subscribe(listOf(
+                    Filter(authors = cachedPubkeys, kinds = listOf(EventKind.METADATA))
+                ))
             }
         }
 
