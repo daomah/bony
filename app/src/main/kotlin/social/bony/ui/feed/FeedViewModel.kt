@@ -3,6 +3,7 @@ package social.bony.ui.feed
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -116,7 +117,7 @@ class FeedViewModel @Inject constructor(
             Filter(authors = listOf(account.pubkey), kinds = listOf(EventKind.RELAY_LIST), limit = 1)
         ))
 
-        collectJob = viewModelScope.launch { collectMessages() }
+        collectJob = viewModelScope.launch(Dispatchers.Default) { collectMessages() }
 
         // Safety net: clear spinner after 15s regardless
         viewModelScope.launch {
