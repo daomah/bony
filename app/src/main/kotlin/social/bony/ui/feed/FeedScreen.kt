@@ -24,6 +24,7 @@ fun FeedScreen(viewModel: FeedViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val activeAccount by viewModel.activeAccount.collectAsStateWithLifecycle()
     val accounts by viewModel.accounts.collectAsStateWithLifecycle()
+    val profiles by viewModel.profiles.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -34,7 +35,7 @@ fun FeedScreen(viewModel: FeedViewModel = hiltViewModel()) {
                         accounts = accounts,
                         onSwitch = viewModel::switchAccount,
                     )
-                },
+                }
             )
         }
     ) { padding ->
@@ -62,7 +63,10 @@ fun FeedScreen(viewModel: FeedViewModel = hiltViewModel()) {
                     modifier = Modifier.fillMaxSize().padding(padding),
                 ) {
                     items(uiState.events, key = { it.id }) { event ->
-                        NoteCard(event = event)
+                        NoteCard(
+                            event = event,
+                            profile = profiles[event.pubkey],
+                        )
                     }
                 }
             }

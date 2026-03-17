@@ -86,4 +86,7 @@ dependencies {
 
     // Crypto
     implementation(libs.bouncycastle.prov)
+
+    // Images
+    implementation(libs.coil.compose)
 }
