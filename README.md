@@ -85,7 +85,7 @@ Legend: ✅ Supported &nbsp;|&nbsp; 🚧 Partial &nbsp;|&nbsp; 🔌 Plugin &nbsp
 | [NIP-21](https://github.com/nostr-protocol/nips/blob/master/21.md) | `nostr:` URI scheme | planned | Deep links from other apps |
 | [NIP-25](https://github.com/nostr-protocol/nips/blob/master/25.md) | Reactions | 🔌 | Likes, emoji reactions |
 | [NIP-36](https://github.com/nostr-protocol/nips/blob/master/36.md) | Sensitive content | planned | Content warnings |
-| [NIP-42](https://github.com/nostr-protocol/nips/blob/master/42.md) | Relay authentication | planned | AUTH challenge/response |
+| [NIP-42](https://github.com/nostr-protocol/nips/blob/master/42.md) | Relay authentication | ✅ | AUTH challenge/response; kind-22242 signed via active signer |
 | [NIP-51](https://github.com/nostr-protocol/nips/blob/master/51.md) | Lists | 🔌 | Mute lists, pin lists, bookmarks |
 | [NIP-57](https://github.com/nostr-protocol/nips/blob/master/57.md) | Lightning zaps | 🔌 | |
 | [NIP-65](https://github.com/nostr-protocol/nips/blob/master/65.md) | Relay list metadata | ✅ | Read relays fetched on login; persisted to account |

@@ -16,5 +16,6 @@ object EventKind {
     const val GIFT_WRAP = 1059       // NIP-59: gift wrap
     const val PRIVATE_DM = 14        // NIP-17: private direct message
     const val RELAY_LIST = 10002     // NIP-65: relay list metadata
+    const val AUTH = 22242           // NIP-42: relay authentication
     const val NOSTR_CONNECT = 24133  // NIP-46: nsecBunker request/response
 }

@@ -9,6 +9,7 @@ import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import social.bony.account.signer.AmberSignerBridge
+import social.bony.nostr.relay.RelayAuthManager
 import social.bony.ui.BonyNavHost
 import social.bony.ui.theme.BonyTheme
 import javax.inject.Inject
@@ -17,6 +18,7 @@ import javax.inject.Inject
 class MainActivity : ComponentActivity() {
 
     @Inject lateinit var amberBridge: AmberSignerBridge
+    @Inject lateinit var relayAuthManager: RelayAuthManager
 
     private val amberLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -34,6 +36,8 @@ class MainActivity : ComponentActivity() {
                 request?.let { amberLauncher.launch(it.intent) }
             }
         }
+
+        relayAuthManager.start(lifecycleScope)
 
         setContent {
             BonyTheme {
