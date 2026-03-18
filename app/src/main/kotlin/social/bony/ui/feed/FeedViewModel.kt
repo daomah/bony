@@ -157,7 +157,21 @@ class FeedViewModel @Inject constructor(
     private fun handleEvent(event: Event) {
         when (event.kind) {
             EventKind.FOLLOW_LIST -> expandFeedToFollows(event)
-            EventKind.METADATA    -> profileRepository.processEvent(event)
+            EventKind.METADATA    -> {
+                profileRepository.processEvent(event)
+                val account = activeAccount.value ?: return
+                if (event.pubkey == account.pubkey) {
+                    val content = ProfileContent.parse(event.content) ?: return
+                    viewModelScope.launch {
+                        accountRepository.updateAccount(
+                            account.copy(
+                                displayName = content.bestName,
+                                pictureUrl = content.picture,
+                            )
+                        )
+                    }
+                }
+            }
             EventKind.RELAY_LIST  -> handleRelayList(event)
             EventKind.TEXT_NOTE,
             EventKind.REPOST      -> addToFeed(event)

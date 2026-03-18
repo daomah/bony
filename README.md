@@ -43,7 +43,7 @@ No Firebase. No Google Play Services.
 
 | Kind | Name | Handling |
 |------|------|----------|
-| 0 | Metadata | Parsed into `ProfileContent`; cached in `ProfileRepository`; drives avatar + display name in feed |
+| 0 | Metadata | Parsed into `ProfileContent`; cached in `ProfileRepository`; drives avatar + display name in feed and top-bar account header |
 | 1 | Text Note | Stored in Room DB; displayed in feed and thread view |
 | 3 | Follow List | Parsed on login to expand home feed subscription to followed pubkeys |
 | 6 | Repost | Stored alongside text notes; displayed in feed (content not unwrapped yet) |
@@ -204,6 +204,18 @@ Bony includes built-in log export to make bug reports useful:
 3. Tap **Share logs** and send the log file with your issue report
 
 Logs are written to the app's private storage (`filesDir/logs/bony.log`), rotate at 2 MB, and never leave the device unless you explicitly share them.
+
+---
+
+## 🗺️ Roadmap
+
+Near-term priorities for the core app:
+
+- Add a second account from within the app (currently requires a fresh install/onboarding)
+- Inline image rendering in notes
+- Relay status indicator and relay management UI
+- nsecBunker onboarding UI (bunker URL entry)
+- NIP-42 AUTH for non-Amber accounts
 
 ---
 
