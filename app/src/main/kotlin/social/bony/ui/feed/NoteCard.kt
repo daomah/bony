@@ -46,11 +46,17 @@ fun NoteCard(
     profiles: Map<String, ProfileContent> = emptyMap(),
     highlighted: Boolean = false,
     onThreadClick: ((eventId: String) -> Unit)? = null,
+    onProfileClick: ((pubkey: String) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val background = if (highlighted) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface
     Column(modifier = modifier.background(background).padding(horizontal = 16.dp, vertical = 12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = if (onProfileClick != null)
+                Modifier.clickable { onProfileClick(event.pubkey) }
+            else Modifier,
+        ) {
             Avatar(pictureUrl = profile?.picture, modifier = Modifier.size(40.dp))
 
             Spacer(Modifier.width(10.dp))

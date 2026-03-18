@@ -28,6 +28,7 @@ import social.bony.ui.feed.NoteCard
 @Composable
 fun ThreadScreen(
     onBack: () -> Unit,
+    onProfileClick: (pubkey: String) -> Unit = {},
     viewModel: ThreadViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -73,6 +74,7 @@ fun ThreadScreen(
                             profile = profiles[event.pubkey],
                             profiles = profiles,
                             highlighted = event.id == uiState.focusedEventId,
+                            onProfileClick = onProfileClick,
                         )
                     }
                 }

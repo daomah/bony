@@ -34,6 +34,7 @@ fun FeedScreen(
     onThreadClick: (eventId: String) -> Unit = {},
     onComposeClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
+    onProfileClick: (pubkey: String) -> Unit = {},
     viewModel: FeedViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -96,6 +97,7 @@ fun FeedScreen(
                                 profile = profiles[event.pubkey],
                                 profiles = profiles,
                                 onThreadClick = onThreadClick,
+                                onProfileClick = onProfileClick,
                             )
                         }
                     }

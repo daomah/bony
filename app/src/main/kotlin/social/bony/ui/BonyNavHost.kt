@@ -24,6 +24,7 @@ import social.bony.logging.LogRepository
 import social.bony.ui.compose.ComposeScreen
 import social.bony.ui.feed.FeedScreen
 import social.bony.ui.onboarding.OnboardingScreen
+import social.bony.ui.profile.ProfileScreen
 import social.bony.ui.settings.SettingsScreen
 import social.bony.ui.thread.ThreadScreen
 import javax.inject.Inject
@@ -33,6 +34,7 @@ private const val ROUTE_FEED = "feed"
 private const val ROUTE_THREAD = "thread/{eventId}"
 private const val ROUTE_COMPOSE = "compose"
 private const val ROUTE_SETTINGS = "settings"
+private const val ROUTE_PROFILE = "profile/{pubkey}"
 
 @Composable
 fun BonyNavHost() {
@@ -63,19 +65,17 @@ fun BonyNavHost() {
                 }
                 composable(ROUTE_FEED) {
                     FeedScreen(
-                        onThreadClick = { eventId ->
-                            navController.navigate("thread/$eventId")
-                        },
-                        onComposeClick = {
-                            navController.navigate(ROUTE_COMPOSE)
-                        },
-                        onSettingsClick = {
-                            navController.navigate(ROUTE_SETTINGS)
-                        },
+                        onThreadClick = { eventId -> navController.navigate("thread/$eventId") },
+                        onComposeClick = { navController.navigate(ROUTE_COMPOSE) },
+                        onSettingsClick = { navController.navigate(ROUTE_SETTINGS) },
+                        onProfileClick = { pubkey -> navController.navigate("profile/$pubkey") },
                     )
                 }
                 composable(ROUTE_THREAD) {
-                    ThreadScreen(onBack = { navController.popBackStack() })
+                    ThreadScreen(
+                        onBack = { navController.popBackStack() },
+                        onProfileClick = { pubkey -> navController.navigate("profile/$pubkey") },
+                    )
                 }
                 composable(ROUTE_COMPOSE) {
                     ComposeScreen(onBack = { navController.popBackStack() })
@@ -84,6 +84,13 @@ fun BonyNavHost() {
                     SettingsScreen(
                         onBack = { navController.popBackStack() },
                         logRepository = logRepository,
+                    )
+                }
+                composable(ROUTE_PROFILE) {
+                    ProfileScreen(
+                        onBack = { navController.popBackStack() },
+                        onThreadClick = { eventId -> navController.navigate("thread/$eventId") },
+                        onProfileClick = { pubkey -> navController.navigate("profile/$pubkey") },
                     )
                 }
             }
