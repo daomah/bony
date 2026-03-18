@@ -2,7 +2,7 @@ package social.bony.account.signer
 
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
-import android.util.Log
+import timber.log.Timber
 import org.bouncycastle.asn1.sec.SECNamedCurves
 import org.bouncycastle.crypto.params.ECDomainParameters
 import org.bouncycastle.crypto.params.ECPrivateKeyParameters
@@ -21,7 +21,6 @@ import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.spec.GCMParameterSpec
 
-private const val TAG = "LocalKeySigner"
 private const val KEYSTORE_ALIAS = "bony_local_key_encryption"
 private const val KEY_PROVIDER = "AndroidKeyStore"
 private const val GCM_IV_LEN = 12
@@ -216,7 +215,7 @@ class LocalKeySigner(
                         .build()
                 )
             }.generateKey()
-            Log.d(TAG, "Generated Keystore key: $KEYSTORE_ALIAS")
+            Timber.d("Generated Keystore key: $KEYSTORE_ALIAS")
         }
     }
 }

@@ -1,6 +1,5 @@
 package social.bony.nostr.relay
 
-import android.util.Log
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -10,9 +9,9 @@ import okhttp3.Request
 import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
+import timber.log.Timber
 import java.util.concurrent.TimeUnit
 
-private const val TAG = "RelayConnection"
 private const val NORMAL_CLOSURE = 1000
 
 /**
@@ -35,7 +34,7 @@ class RelayConnection(
 
         val listener = object : WebSocketListener() {
             override fun onOpen(ws: WebSocket, response: Response) {
-                Log.d(TAG, "Connected: $url")
+                Timber.d("Connected: $url")
                 webSocket = ws
                 trySend(RelayMessage.Connected)
             }
@@ -45,12 +44,12 @@ class RelayConnection(
             }
 
             override fun onFailure(ws: WebSocket, t: Throwable, response: Response?) {
-                Log.w(TAG, "Failure on $url: ${t.message}")
+                Timber.w("Failure on $url: ${t.message}")
                 close(t)
             }
 
             override fun onClosed(ws: WebSocket, code: Int, reason: String) {
-                Log.d(TAG, "Closed: $url — $reason")
+                Timber.d("Closed: $url — $reason")
                 webSocket = null
                 close()
             }
@@ -63,7 +62,7 @@ class RelayConnection(
             webSocket = null
         }
     }.catch { t ->
-        Log.e(TAG, "Flow error on $url", t)
+        Timber.e(t, "Flow error on $url")
     }
 
     /**
@@ -71,7 +70,7 @@ class RelayConnection(
      */
     fun send(message: ClientMessage): Boolean {
         val json = message.toJson()
-        Log.v(TAG, "→ $url: $json")
+        Timber.v("→ $url: $json")
         return webSocket?.send(json) ?: false
     }
 

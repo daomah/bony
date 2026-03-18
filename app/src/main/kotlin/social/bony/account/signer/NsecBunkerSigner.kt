@@ -1,6 +1,5 @@
 package social.bony.account.signer
 
-import android.util.Log
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
@@ -18,7 +17,6 @@ import social.bony.nostr.relay.RelayMessage
 import social.bony.nostr.relay.RelayPool
 import java.util.UUID
 
-private const val TAG = "NsecBunkerSigner"
 private const val REQUEST_TIMEOUT_MS = 30_000L
 
 /**

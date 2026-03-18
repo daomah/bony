@@ -1,6 +1,5 @@
 package social.bony.nostr.relay
 
-import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -9,10 +8,10 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import social.bony.nostr.Filter
+import timber.log.Timber
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
-private const val TAG = "RelayPool"
 private const val RECONNECT_DELAY_MS = 5_000L
 private const val MAX_RECONNECT_DELAY_MS = 60_000L
 
@@ -40,12 +39,12 @@ class RelayPool(
         val connection = connectionFactory(url)
         val job = scope.launch { connectWithRetry(url, connection) }
         connections[url] = RelayEntry(connection, job)
-        Log.d(TAG, "Added relay: $url")
+        Timber.d("Added relay: $url")
     }
 
     fun removeRelay(url: String) {
         connections.remove(url)?.job?.cancel()
-        Log.d(TAG, "Removed relay: $url")
+        Timber.d("Removed relay: $url")
     }
 
     fun relayUrls(): Set<String> = connections.keys.toSet()
@@ -61,7 +60,7 @@ class RelayPool(
         activeSubscriptions[id] = sub
         val req = ClientMessage.Req(id, filters)
         connections.values.forEach { it.connection.send(req) }
-        Log.d(TAG, "Subscribed: $id with ${filters.size} filter(s)")
+        Timber.d("Subscribed: $id with ${filters.size} filter(s)")
         return id
     }
 
@@ -69,7 +68,7 @@ class RelayPool(
     fun publish(event: social.bony.nostr.Event) {
         val msg = ClientMessage.Publish(event)
         connections.values.forEach { it.connection.send(msg) }
-        Log.d(TAG, "Published event ${event.id.take(8)}… to ${connections.size} relay(s)")
+        Timber.d("Published event ${event.id.take(8)}… to ${connections.size} relay(s)")
     }
 
     /** Sends a message to a specific relay by URL. Returns false if not connected. */
@@ -80,7 +79,7 @@ class RelayPool(
         activeSubscriptions.remove(subscriptionId) ?: return
         val close = ClientMessage.Close(subscriptionId)
         connections.values.forEach { it.connection.send(close) }
-        Log.d(TAG, "Unsubscribed: $subscriptionId")
+        Timber.d("Unsubscribed: $subscriptionId")
     }
 
     // ── Internal ──────────────────────────────────────────────────────────────
@@ -88,17 +87,16 @@ class RelayPool(
     private suspend fun connectWithRetry(url: String, connection: RelayConnection) {
         var delayMs = RECONNECT_DELAY_MS
         while (true) {
-            Log.d(TAG, "Connecting: $url")
+            Timber.d("Connecting: $url")
             try {
                 connection.messages.collect { message ->
                     when (message) {
                         is RelayMessage.Connected -> {
-                            // Socket is now open — replay all active subscriptions
                             delayMs = RECONNECT_DELAY_MS
                             activeSubscriptions.values.forEach { sub ->
                                 connection.send(ClientMessage.Req(sub.id, sub.filters))
                             }
-                            Log.d(TAG, "Replayed ${activeSubscriptions.size} subscription(s) to $url")
+                            Timber.d("Replayed ${activeSubscriptions.size} subscription(s) to $url")
                         }
                         else -> {
                             delayMs = RECONNECT_DELAY_MS
@@ -107,13 +105,12 @@ class RelayPool(
                     }
                 }
             } catch (e: Exception) {
-                Log.w(TAG, "Collection error on $url", e)
+                Timber.w(e, "Collection error on $url")
             }
 
-            // Flow completed (connection dropped) — check if relay is still wanted
             if (!connections.containsKey(url)) break
 
-            Log.d(TAG, "Reconnecting $url in ${delayMs}ms")
+            Timber.d("Reconnecting $url in ${delayMs}ms")
             delay(delayMs)
             delayMs = (delayMs * 2).coerceAtMost(MAX_RECONNECT_DELAY_MS)
         }

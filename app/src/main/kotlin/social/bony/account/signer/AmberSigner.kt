@@ -1,15 +1,13 @@
 package social.bony.account.signer
 
 import android.content.Intent
-import android.util.Log
+import timber.log.Timber
 import androidx.core.net.toUri
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import social.bony.nostr.Event
 import social.bony.nostr.UnsignedEvent
-
-private const val TAG = "BonyAmber"
 
 /**
  * NIP-55: delegates signing and encryption to Amber (or any compatible
@@ -44,7 +42,7 @@ class AmberSigner(
             put("sig", "")
         }.toString()
 
-        Log.d(TAG, "sign_event JSON (first 500): ${eventJson.take(500)}")
+        Timber.d("sign_event JSON (first 500): ${eventJson.take(500)}")
 
         val intent = Intent(Intent.ACTION_VIEW, "nostrsigner:$eventJson".toUri()).apply {
             addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
