@@ -40,6 +40,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -89,4 +90,7 @@ dependencies {
 
     // Images
     implementation(libs.coil.compose)
+
+    // Logging
+    implementation(libs.timber)
 }

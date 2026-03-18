@@ -195,6 +195,18 @@ bony/
 
 ---
 
+## 🐛 Reporting Issues
+
+Bony includes built-in log export to make bug reports useful:
+
+1. Reproduce the issue
+2. Open **Settings** (gear icon in the feed top bar)
+3. Tap **Share logs** and send the log file with your issue report
+
+Logs are written to the app's private storage (`filesDir/logs/bony.log`), rotate at 2 MB, and never leave the device unless you explicitly share them.
+
+---
+
 ## 🤝 Contributing
 
 Plugins extend Bony. Core PRs should keep the app lean — if a feature can be a plugin, it should be.
