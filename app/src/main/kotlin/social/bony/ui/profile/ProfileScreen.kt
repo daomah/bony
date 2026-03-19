@@ -1,8 +1,10 @@
 package social.bony.ui.profile
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,27 +12,34 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -54,7 +63,28 @@ fun ProfileScreen(
     val profile by viewModel.profile.collectAsStateWithLifecycle()
     val notes by viewModel.notes.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val isActiveUserProfile by viewModel.isActiveUserProfile.collectAsStateWithLifecycle()
+    val isFollowing by viewModel.isFollowing.collectAsStateWithLifecycle()
+    val isFollowLoading by viewModel.isFollowLoading.collectAsStateWithLifecycle()
     val pubkey = viewModel.pubkey
+
+    val context = LocalContext.current
+    val onShare = remember(pubkey, profile) {
+        {
+            val npub = Nip19.hexToNpub(pubkey)
+            val shareText = buildString {
+                profile?.bestName?.let { append("$it\n") }
+                append("nostr:$npub")
+            }
+            context.startActivity(Intent.createChooser(
+                Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, shareText)
+                },
+                "Share profile",
+            ))
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -63,6 +93,11 @@ fun ProfileScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onShare) {
+                        Icon(Icons.Default.Share, contentDescription = "Share profile")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
@@ -81,7 +116,6 @@ fun ProfileScreen(
                         .fillMaxWidth()
                         .height(BANNER_HEIGHT + AVATAR_OFFSET),
                 ) {
-                    // Banner
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -98,7 +132,6 @@ fun ProfileScreen(
                         }
                     }
 
-                    // Avatar overlapping the banner
                     val avatarMod = Modifier
                         .size(AVATAR_SIZE)
                         .align(Alignment.BottomStart)
@@ -112,10 +145,7 @@ fun ProfileScreen(
                             modifier = avatarMod,
                         )
                     } else {
-                        Box(
-                            modifier = avatarMod
-                                .background(MaterialTheme.colorScheme.primary),
-                        )
+                        Box(modifier = avatarMod.background(MaterialTheme.colorScheme.primary))
                     }
                 }
 
@@ -152,6 +182,35 @@ fun ProfileScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
+                    }
+
+                    // ── Follow / Unfollow button ───────────────────────────
+                    if (!isActiveUserProfile) {
+                        Spacer(Modifier.height(12.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (isFollowLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                )
+                                Spacer(Modifier.width(8.dp))
+                            }
+                            if (isFollowing) {
+                                OutlinedButton(
+                                    onClick = viewModel::unfollow,
+                                    enabled = !isFollowLoading,
+                                ) {
+                                    Text("Unfollow")
+                                }
+                            } else {
+                                Button(
+                                    onClick = viewModel::follow,
+                                    enabled = !isFollowLoading,
+                                ) {
+                                    Text("Follow")
+                                }
+                            }
+                        }
                     }
 
                     Spacer(Modifier.height(16.dp))

@@ -14,6 +14,7 @@ data class Account(
     val signerType: SignerType,
     val nsecBunkerConfig: NsecBunkerConfig? = null,
     val relays: List<String> = emptyList(),      // NIP-65 outbox relays
+    val follows: List<String> = emptyList(),     // cached from kind-3 contact list
 )
 
 @Serializable

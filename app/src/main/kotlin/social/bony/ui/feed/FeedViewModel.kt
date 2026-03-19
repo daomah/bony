@@ -309,6 +309,13 @@ class FeedViewModel @Inject constructor(
         metadataSubId = sub(listOf(
             Filter(authors = allPubkeys, kinds = listOf(EventKind.METADATA))
         ))
+
+        // Persist follow list so ProfileViewModel can read it without re-fetching
+        viewModelScope.launch {
+            activeAccount.value?.let { account ->
+                accountRepository.updateAccount(account.copy(follows = followed))
+            }
+        }
     }
 
     /**
