@@ -22,6 +22,7 @@ data class Filter(
     @SerialName("#e") val eTags: List<String>? = null,
     @SerialName("#p") val pTags: List<String>? = null,
     @SerialName("#t") val tTags: List<String>? = null,
+    val search: String? = null,  // NIP-50: full-text search (relay-dependent)
 ) {
     fun toJsonObject(): JsonObject {
         val full = Json.encodeToJsonElement(this).jsonObject

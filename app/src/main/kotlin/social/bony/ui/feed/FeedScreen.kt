@@ -11,6 +11,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.CircularProgressIndicator
@@ -46,6 +47,7 @@ fun FeedScreen(
     onSettingsClick: () -> Unit = {},
     onProfileClick: (pubkey: String) -> Unit = {},
     onRelayManagementClick: () -> Unit = {},
+    onSearchClick: () -> Unit = {},
     onReplyClick: (social.bony.nostr.Event) -> Unit = {},
     onQuoteClick: (social.bony.nostr.Event) -> Unit = {},
     viewModel: FeedViewModel = hiltViewModel(),
@@ -105,6 +107,9 @@ fun FeedScreen(
                         relayStatuses.values.any { it == social.bony.nostr.relay.RelayStatus.CONNECTED }  -> social.bony.nostr.relay.RelayStatus.CONNECTED
                         relayStatuses.values.any { it == social.bony.nostr.relay.RelayStatus.CONNECTING } -> social.bony.nostr.relay.RelayStatus.CONNECTING
                         else -> social.bony.nostr.relay.RelayStatus.DISCONNECTED
+                    }
+                    IconButton(onClick = onSearchClick) {
+                        Icon(Icons.Default.Search, contentDescription = "Search")
                     }
                     IconButton(onClick = onRelayManagementClick) {
                         social.bony.ui.settings.RelayStatusDot(overallStatus)

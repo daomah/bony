@@ -1,0 +1,112 @@
+package social.bony.ui.hashtag
+
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import social.bony.db.EventRepository
+import social.bony.nostr.Event
+import social.bony.nostr.EventKind
+import social.bony.nostr.Filter
+import social.bony.nostr.ProfileContent
+import social.bony.nostr.relay.RelayMessage
+import social.bony.nostr.relay.RelayPool
+import social.bony.profile.ProfileRepository
+import javax.inject.Inject
+
+data class HashtagFeedUiState(
+    val events: List<Event> = emptyList(),
+    val isLoading: Boolean = true,
+)
+
+@HiltViewModel
+class HashtagFeedViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
+    private val pool: RelayPool,
+    private val profileRepository: ProfileRepository,
+    private val eventRepository: EventRepository,
+) : ViewModel() {
+
+    val hashtag: String = checkNotNull(savedStateHandle["tag"])
+
+    private val _uiState = MutableStateFlow(HashtagFeedUiState())
+    val uiState: StateFlow<HashtagFeedUiState> = _uiState.asStateFlow()
+
+    val profiles: StateFlow<Map<String, ProfileContent>> = profileRepository.profiles
+
+    private var subId: String? = null
+    private val pendingEvents = mutableListOf<Event>()
+    @Volatile private var settled = false
+
+    init {
+        subId = pool.subscribe(listOf(
+            Filter(kinds = listOf(EventKind.TEXT_NOTE, EventKind.REPOST), tTags = listOf(hashtag), limit = 100)
+        ))
+
+        viewModelScope.launch(Dispatchers.Default) {
+            pool.messages.collect { (_, msg) ->
+                when (msg) {
+                    is RelayMessage.EventMessage -> {
+                        if (msg.subscriptionId != subId) return@collect
+                        val event = msg.event
+                        if (!event.verify()) return@collect
+                        viewModelScope.launch { eventRepository.save(event, "") }
+                        if (!settled) {
+                            synchronized(pendingEvents) { pendingEvents.add(event) }
+                        } else {
+                            addToFeed(event)
+                        }
+                        fetchProfileForAuthor(event.pubkey)
+                    }
+                    is RelayMessage.EndOfStoredEvents -> {
+                        if (msg.subscriptionId != subId) return@collect
+                        if (!settled) {
+                            settled = true
+                            flush()
+                        }
+                        _uiState.update { it.copy(isLoading = false) }
+                    }
+                    else -> Unit
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            delay(15_000)
+            if (!settled) { settled = true; flush() }
+            _uiState.update { if (it.isLoading) it.copy(isLoading = false) else it }
+        }
+    }
+
+    private fun flush() {
+        val events = synchronized(pendingEvents) { pendingEvents.toList().also { pendingEvents.clear() } }
+        if (events.isEmpty()) return
+        _uiState.update { state ->
+            val merged = (state.events + events).distinctBy { it.id }.sortedByDescending { it.createdAt }
+            state.copy(events = merged)
+        }
+    }
+
+    private fun addToFeed(event: Event) {
+        _uiState.update { state ->
+            val updated = (state.events + event).distinctBy { it.id }.sortedByDescending { it.createdAt }
+            state.copy(events = updated)
+        }
+    }
+
+    private fun fetchProfileForAuthor(pubkey: String) {
+        if (profileRepository.profiles.value[pubkey] != null) return
+        pool.subscribe(listOf(Filter(authors = listOf(pubkey), kinds = listOf(EventKind.METADATA), limit = 1)))
+    }
+
+    override fun onCleared() {
+        subId?.let { pool.unsubscribe(it) }
+    }
+}

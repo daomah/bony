@@ -24,8 +24,10 @@ import kotlinx.coroutines.flow.stateIn
 import social.bony.account.AccountRepository
 import social.bony.ui.compose.ComposeScreen
 import social.bony.ui.feed.FeedScreen
+import social.bony.ui.hashtag.HashtagFeedScreen
 import social.bony.ui.onboarding.OnboardingScreen
 import social.bony.ui.profile.ProfileScreen
+import social.bony.ui.search.SearchScreen
 import social.bony.ui.settings.AccountManagementScreen
 import social.bony.ui.settings.RelayManagementScreen
 import social.bony.ui.settings.SettingsScreen
@@ -41,6 +43,8 @@ private const val ROUTE_PROFILE = "profile/{pubkey}"
 private const val ROUTE_ADD_ACCOUNT = "add_account"
 private const val ROUTE_ACCOUNT_MANAGEMENT = "account_management"
 private const val ROUTE_RELAY_MANAGEMENT = "relay_management"
+private const val ROUTE_SEARCH = "search"
+private const val ROUTE_HASHTAG = "hashtag/{tag}"
 
 @Composable
 fun BonyNavHost() {
@@ -75,6 +79,7 @@ fun BonyNavHost() {
                         onSettingsClick = { navController.navigate(ROUTE_SETTINGS) },
                         onProfileClick = { pubkey -> navController.navigate("profile/$pubkey") },
                         onRelayManagementClick = { navController.navigate(ROUTE_RELAY_MANAGEMENT) },
+                        onSearchClick = { navController.navigate(ROUTE_SEARCH) },
                         onReplyClick = { event -> navController.navigate("compose?replyToId=${event.id}") },
                         onQuoteClick = { event -> navController.navigate("compose?quoteToId=${event.id}") },
                     )
@@ -123,6 +128,20 @@ fun BonyNavHost() {
                 }
                 composable(ROUTE_PROFILE) {
                     ProfileScreen(
+                        onBack = { navController.popBackStack() },
+                        onThreadClick = { eventId -> navController.navigate("thread/$eventId") },
+                        onProfileClick = { pubkey -> navController.navigate("profile/$pubkey") },
+                    )
+                }
+                composable(ROUTE_SEARCH) {
+                    SearchScreen(
+                        onBack = { navController.popBackStack() },
+                        onProfileClick = { pubkey -> navController.navigate("profile/$pubkey") },
+                        onHashtagClick = { tag -> navController.navigate("hashtag/$tag") },
+                    )
+                }
+                composable(ROUTE_HASHTAG) {
+                    HashtagFeedScreen(
                         onBack = { navController.popBackStack() },
                         onThreadClick = { eventId -> navController.navigate("thread/$eventId") },
                         onProfileClick = { pubkey -> navController.navigate("profile/$pubkey") },
