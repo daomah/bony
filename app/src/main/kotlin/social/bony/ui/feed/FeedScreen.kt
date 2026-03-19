@@ -43,6 +43,8 @@ fun FeedScreen(
     onSettingsClick: () -> Unit = {},
     onProfileClick: (pubkey: String) -> Unit = {},
     onRelayManagementClick: () -> Unit = {},
+    onReplyClick: (social.bony.nostr.Event) -> Unit = {},
+    onQuoteClick: (social.bony.nostr.Event) -> Unit = {},
     viewModel: FeedViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -148,7 +150,9 @@ fun FeedScreen(
                                 },
                                 onThreadClick = onThreadClick,
                                 onProfileClick = onProfileClick,
+                                onReply = onReplyClick,
                                 onBoost = viewModel::boost,
+                                onQuote = onQuoteClick,
                                 onShare = onShare,
                             )
                         }

@@ -11,9 +11,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -33,7 +35,7 @@ import javax.inject.Inject
 private const val ROUTE_ONBOARDING = "onboarding"
 private const val ROUTE_FEED = "feed"
 private const val ROUTE_THREAD = "thread/{eventId}"
-private const val ROUTE_COMPOSE = "compose"
+private const val ROUTE_COMPOSE = "compose?replyToId={replyToId}&quoteToId={quoteToId}"
 private const val ROUTE_SETTINGS = "settings"
 private const val ROUTE_PROFILE = "profile/{pubkey}"
 private const val ROUTE_ADD_ACCOUNT = "add_account"
@@ -69,10 +71,12 @@ fun BonyNavHost() {
                 composable(ROUTE_FEED) {
                     FeedScreen(
                         onThreadClick = { eventId -> navController.navigate("thread/$eventId") },
-                        onComposeClick = { navController.navigate(ROUTE_COMPOSE) },
+                        onComposeClick = { navController.navigate("compose") },
                         onSettingsClick = { navController.navigate(ROUTE_SETTINGS) },
                         onProfileClick = { pubkey -> navController.navigate("profile/$pubkey") },
                         onRelayManagementClick = { navController.navigate(ROUTE_RELAY_MANAGEMENT) },
+                        onReplyClick = { event -> navController.navigate("compose?replyToId=${event.id}") },
+                        onQuoteClick = { event -> navController.navigate("compose?quoteToId=${event.id}") },
                     )
                 }
                 composable(ROUTE_THREAD) {
@@ -82,7 +86,13 @@ fun BonyNavHost() {
                         onThreadClick = { eventId -> navController.navigate("thread/$eventId") },
                     )
                 }
-                composable(ROUTE_COMPOSE) {
+                composable(
+                    ROUTE_COMPOSE,
+                    arguments = listOf(
+                        navArgument("replyToId") { type = NavType.StringType; defaultValue = "" },
+                        navArgument("quoteToId") { type = NavType.StringType; defaultValue = "" },
+                    ),
+                ) {
                     ComposeScreen(onBack = { navController.popBackStack() })
                 }
                 composable(ROUTE_SETTINGS) {

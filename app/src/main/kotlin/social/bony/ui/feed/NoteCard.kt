@@ -16,7 +16,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.HorizontalDivider
@@ -55,7 +57,9 @@ fun NoteCard(
     quotedEvent: Event? = null,
     onThreadClick: ((eventId: String) -> Unit)? = null,
     onProfileClick: ((pubkey: String) -> Unit)? = null,
+    onReply: ((Event) -> Unit)? = null,
     onBoost: ((Event) -> Unit)? = null,
+    onQuote: ((Event) -> Unit)? = null,
     onShare: ((Event) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -100,7 +104,7 @@ fun NoteCard(
                     onProfileClick = onProfileClick,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                 )
-                NoteActions(quotedEvent, onBoost, onShare,
+                NoteActions(quotedEvent, onReply, onBoost, onQuote, onShare,
                     modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 4.dp))
             } else {
                 Text(
@@ -227,7 +231,7 @@ fun NoteCard(
             }
         }
 
-        NoteActions(event, onBoost, onShare, modifier = Modifier.padding(start = 42.dp, top = 2.dp))
+        NoteActions(event, onReply, onBoost, onQuote, onShare, modifier = Modifier.padding(start = 42.dp, top = 2.dp))
     }
 
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -309,17 +313,39 @@ fun QuotedNoteCard(
 @Composable
 private fun NoteActions(
     event: Event,
+    onReply: ((Event) -> Unit)?,
     onBoost: ((Event) -> Unit)?,
+    onQuote: ((Event) -> Unit)?,
     onShare: ((Event) -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
-    if (onBoost == null && onShare == null) return
+    if (onReply == null && onBoost == null && onQuote == null && onShare == null) return
     Row(modifier = modifier) {
+        if (onReply != null) {
+            IconButton(onClick = { onReply(event) }, modifier = Modifier.size(32.dp)) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Reply,
+                    contentDescription = "Reply",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
         if (onBoost != null) {
             IconButton(onClick = { onBoost(event) }, modifier = Modifier.size(32.dp)) {
                 Icon(
                     imageVector = Icons.Default.Repeat,
                     contentDescription = "Boost",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
+        if (onQuote != null) {
+            IconButton(onClick = { onQuote(event) }, modifier = Modifier.size(32.dp)) {
+                Icon(
+                    imageVector = Icons.Default.FormatQuote,
+                    contentDescription = "Quote",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp),
                 )
