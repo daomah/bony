@@ -19,9 +19,14 @@ import kotlinx.coroutines.launch
 import social.bony.account.Account
 import social.bony.account.AccountRepository
 import social.bony.db.EventRepository
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.buildJsonArray
+import social.bony.account.signer.NostrSignerFactory
 import social.bony.nostr.Event
 import social.bony.nostr.EventKind
 import social.bony.nostr.Filter
+import social.bony.nostr.UnsignedEvent
 import social.bony.nostr.ProfileContent
 import social.bony.nostr.pubkeys
 import social.bony.nostr.quotedEventId
@@ -29,6 +34,7 @@ import social.bony.ui.feed.extractInlineQuoteId
 import social.bony.nostr.relay.RelayMessage
 import social.bony.nostr.relay.RelayPool
 import social.bony.nostr.relay.RelayStatus
+import timber.log.Timber
 import social.bony.profile.ProfileRepository
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -46,6 +52,7 @@ class FeedViewModel @Inject constructor(
     private val accountRepository: AccountRepository,
     private val profileRepository: ProfileRepository,
     private val eventRepository: EventRepository,
+    private val signerFactory: NostrSignerFactory,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FeedUiState())
@@ -100,6 +107,24 @@ class FeedViewModel @Inject constructor(
 
     fun switchAccount(pubkey: String) {
         viewModelScope.launch { accountRepository.setActiveAccount(pubkey) }
+    }
+
+    fun boost(event: Event) {
+        viewModelScope.launch {
+            val signer = signerFactory.forActiveAccount() ?: return@launch
+            val unsigned = UnsignedEvent(
+                pubkey = signer.pubkey,
+                kind = EventKind.REPOST,
+                content = Json.encodeToString(Event.serializer(), event),
+                tags = listOf(
+                    buildJsonArray { add("e"); add(event.id); add(""); add("mention") },
+                    buildJsonArray { add("p"); add(event.pubkey) },
+                ),
+            )
+            signer.signEvent(unsigned)
+                .onSuccess { pool.publish(it) }
+                .onFailure { e -> Timber.w(e, "Boost failed") }
+        }
     }
 
     // ── Feed loading ──────────────────────────────────────────────────────────

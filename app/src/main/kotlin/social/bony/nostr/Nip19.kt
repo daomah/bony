@@ -22,6 +22,9 @@ object Nip19 {
     /** Converts a 64-char hex pubkey to an npub1… string. */
     fun hexToNpub(hex: String): String = encode("npub", hex.hexToBytes())
 
+    /** Converts a 64-char hex event ID to a note1… string. */
+    fun hexToNote(hex: String): String = encode("note", hex.hexToBytes())
+
     /** Returns true if the string looks like a bech32-encoded Nostr entity. */
     fun isBech32(s: String): Boolean =
         s.startsWith("npub1") || s.startsWith("note1") ||

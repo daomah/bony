@@ -19,14 +19,18 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import social.bony.nostr.Nip19
 import social.bony.nostr.quotedEventId
 import social.bony.ui.components.AccountSwitcher
 import social.bony.ui.feed.extractInlineQuoteId
@@ -47,6 +51,22 @@ fun FeedScreen(
     val profiles by viewModel.profiles.collectAsStateWithLifecycle()
     val relayStatuses by viewModel.relayStatuses.collectAsStateWithLifecycle()
     val quotedEvents by viewModel.quotedEvents.collectAsStateWithLifecycle()
+
+    val context = LocalContext.current
+    val onShare = remember {
+        { event: social.bony.nostr.Event ->
+            val noteUri = "nostr:${Nip19.hexToNote(event.id)}"
+            val shareText = buildString {
+                val text = event.content.take(280).trim()
+                if (text.isNotEmpty()) { append(text); append("\n\n") }
+                append(noteUri)
+            }
+            context.startActivity(Intent.createChooser(
+                Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, shareText) },
+                "Share note",
+            ))
+        }
+    }
 
     val listState = rememberLazyListState()
     val pullToRefreshState = rememberPullToRefreshState()
@@ -128,6 +148,8 @@ fun FeedScreen(
                                 },
                                 onThreadClick = onThreadClick,
                                 onProfileClick = onProfileClick,
+                                onBoost = viewModel::boost,
+                                onShare = onShare,
                             )
                         }
                     }

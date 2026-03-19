@@ -18,8 +18,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -53,6 +55,8 @@ fun NoteCard(
     quotedEvent: Event? = null,
     onThreadClick: ((eventId: String) -> Unit)? = null,
     onProfileClick: ((pubkey: String) -> Unit)? = null,
+    onBoost: ((Event) -> Unit)? = null,
+    onShare: ((Event) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val background = if (highlighted) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface
@@ -96,7 +100,8 @@ fun NoteCard(
                     onProfileClick = onProfileClick,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                 )
-                Spacer(Modifier.height(8.dp))
+                NoteActions(quotedEvent, onBoost, onShare,
+                    modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 4.dp))
             } else {
                 Text(
                     text = "Loading boosted note…",
@@ -221,6 +226,8 @@ fun NoteCard(
                 )
             }
         }
+
+        NoteActions(event, onBoost, onShare, modifier = Modifier.padding(start = 42.dp, top = 2.dp))
     }
 
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -295,6 +302,38 @@ fun QuotedNoteCard(
         if (parsed.mediaItems.isNotEmpty()) {
             Spacer(Modifier.height(if (parsed.text.isNotEmpty()) 6.dp else 0.dp))
             NoteMediaContent(mediaItems = parsed.mediaItems, modifier = Modifier.fillMaxWidth())
+        }
+    }
+}
+
+@Composable
+private fun NoteActions(
+    event: Event,
+    onBoost: ((Event) -> Unit)?,
+    onShare: ((Event) -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    if (onBoost == null && onShare == null) return
+    Row(modifier = modifier) {
+        if (onBoost != null) {
+            IconButton(onClick = { onBoost(event) }, modifier = Modifier.size(32.dp)) {
+                Icon(
+                    imageVector = Icons.Default.Repeat,
+                    contentDescription = "Boost",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
+        if (onShare != null) {
+            IconButton(onClick = { onShare(event) }, modifier = Modifier.size(32.dp)) {
+                Icon(
+                    imageVector = Icons.Default.Share,
+                    contentDescription = "Share",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
         }
     }
 }

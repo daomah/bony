@@ -14,11 +14,19 @@ Do the minimum well. No analytics, no tracking, no Google Services. Authenticati
 
 ## ⚡ Core Features
 
-- Multi-account support — add, switch, and remove accounts from within the app
-- External signer authentication: [Amber](https://github.com/greenart7c3/Amber) (NIP-55) and nsecBunker (NIP-46)
-- Android Keystore as a local fallback (last resort only)
-- Push notifications via [UnifiedPush](https://unifiedpush.org/) (no FCM)
-- Distribution via F-Droid and GitHub Releases
+- **Multi-account** — add, switch, and remove accounts from within the app
+- **External signers** — [Amber](https://github.com/greenart7c3/Amber) (NIP-55) and nsecBunker (NIP-46); Android Keystore as a local fallback
+- **Home feed** — follow-graph events with live relay streaming, pull-to-refresh, and atomic load (feed appears all at once, not one note at a time)
+- **Reposts and quote-notes** — kind-6 reposts rendered as embedded cards; quote-notes (NIP-18 `q` tag and inline `nostr:note1…` refs) resolved and embedded
+- **Inline media** — images render inline (tap to expand); video links open the system player
+- **Thread view** — root note → gap indicator → direct parent → focused note → live replies
+- **Boost notes** — one-tap repost (kind-6) via your active signer
+- **Share notes** — Android share sheet with note text + `nostr:note1…` URI
+- **Relay management** — live connectivity indicator in the feed top bar; add/remove relays with status dots (green/yellow/red); changes persisted to your account
+- **nostr: URI handling** — `nostr:npub1…` @mentions abbreviated inline; `nostr:note1…`/`nostr:nevent1…` refs rendered as embedded quote cards
+- **Log export** — Settings → Share logs for bug reports
+- **Push notifications** via [UnifiedPush](https://unifiedpush.org/) (no FCM)
+- **Distribution** via F-Droid and GitHub Releases
 
 ---
 
@@ -43,10 +51,10 @@ No Firebase. No Google Play Services.
 
 | Kind | Name | Handling |
 |------|------|----------|
-| 0 | Metadata | Parsed into `ProfileContent`; cached in `ProfileRepository`; drives avatar + display name in feed and top-bar account header |
-| 1 | Text Note | Stored in Room DB; displayed in feed and thread view |
+| 0 | Metadata | Parsed into `ProfileContent`; cached in `ProfileRepository`; drives avatar + display name in feed, threads, and top-bar account header |
+| 1 | Text Note | Stored in Room DB; displayed in feed and thread view; inline images and video; `nostr:` URI handling |
 | 3 | Follow List | Parsed on login to expand home feed subscription to followed pubkeys |
-| 6 | Repost | Stored alongside text notes; displayed in feed (content not unwrapped yet) |
+| 6 | Repost | Rendered as embedded card with original author and content; publishing (boost) supported |
 | 10002 | Relay List | Read relays extracted and connected on login; list persisted to account |
 | 24133 | Nostr Connect | Used internally by `NsecBunkerSigner` for NIP-46 request/response |
 
@@ -62,10 +70,14 @@ Legend: ✅ Supported &nbsp;|&nbsp; 🚧 Partial &nbsp;|&nbsp; 🔌 Plugin &nbsp
 |---|---|---|---|
 | [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md) | Basic protocol & event model | ✅ | Event, Filter, relay WebSocket pool, kind-0 profile metadata |
 | [NIP-02](https://github.com/nostr-protocol/nips/blob/master/02.md) | Contact lists | ✅ | Follow list drives the home feed |
-| [NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md) | bech32-encoded entities | ✅ | npub, note encode/decode |
+| [NIP-10](https://github.com/nostr-protocol/nips/blob/master/10.md) | Text note references & replies | ✅ | Reply indicator; thread view shows root → parent → focused note → live replies |
+| [NIP-18](https://github.com/nostr-protocol/nips/blob/master/18.md) | Reposts | ✅ | Render kind-6 reposts and `q`-tag quote-notes as embedded cards; boost (publish kind-6) |
+| [NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md) | bech32-encoded entities | ✅ | npub, note, nevent encode/decode; nostr: URI parsing in note content |
+| [NIP-27](https://github.com/nostr-protocol/nips/blob/master/27.md) | Text note references | 🚧 | `nostr:note1`/`nevent1` refs rendered as embedded quote cards; `nostr:npub1` abbreviated as @mention; display-name resolution for @mentions not yet implemented |
 | [NIP-44](https://github.com/nostr-protocol/nips/blob/master/44.md) | Versioned encryption | ✅ | ChaCha20 + HMAC-SHA256, HKDF |
-| [NIP-46](https://github.com/nostr-protocol/nips/blob/master/46.md) | Nostr Connect (nsecBunker) | 🚧 | Signer implemented; onboarding UI pending |
+| [NIP-46](https://github.com/nostr-protocol/nips/blob/master/46.md) | Nostr Connect (nsecBunker) | 🚧 | Signer and onboarding UI implemented; end-to-end testing against real bunkers pending |
 | [NIP-55](https://github.com/nostr-protocol/nips/blob/master/55.md) | Android signer (Amber) | ✅ | Sign, encrypt, decrypt via intent |
+| [NIP-65](https://github.com/nostr-protocol/nips/blob/master/65.md) | Relay list metadata | ✅ | Read relays fetched on login; persisted to account; relay management UI with live status |
 
 ### NIPs with plugins available
 
@@ -75,20 +87,17 @@ Legend: ✅ Supported &nbsp;|&nbsp; 🚧 Partial &nbsp;|&nbsp; 🔌 Plugin &nbsp
 
 | NIP | Name | Status | Notes |
 |---|---|---|---|
-| [NIP-04](https://github.com/nostr-protocol/nips/blob/master/04.md) | Encrypted direct messages (legacy) | 🔌 | Deprecated; widely used |
+| [NIP-04](https://github.com/nostr-protocol/nips/blob/master/04.md) | Encrypted direct messages (legacy) | 🔌 | Deprecated; for DMs consider [Pokey](https://github.com/KoalaSat/pokey) (notifications) or [0xchat](https://0xchat.com) (full client) |
 | [NIP-05](https://github.com/nostr-protocol/nips/blob/master/05.md) | DNS-based identifiers | planned | Verification badge on profiles |
 | [NIP-09](https://github.com/nostr-protocol/nips/blob/master/09.md) | Event deletion | planned | |
-| [NIP-10](https://github.com/nostr-protocol/nips/blob/master/10.md) | Text note references & replies | ✅ | Reply indicator; tap to open thread view with parent chain |
 | [NIP-11](https://github.com/nostr-protocol/nips/blob/master/11.md) | Relay information document | planned | Relay metadata / limits |
-| [NIP-17](https://github.com/nostr-protocol/nips/blob/master/17.md) | Private direct messages | 🔌 | Replaces NIP-04 |
-| [NIP-18](https://github.com/nostr-protocol/nips/blob/master/18.md) | Reposts | planned | kind 6 |
+| [NIP-17](https://github.com/nostr-protocol/nips/blob/master/17.md) | Private direct messages | 🔌 | For DMs, [0xchat](https://0xchat.com) is the recommended companion app |
 | [NIP-21](https://github.com/nostr-protocol/nips/blob/master/21.md) | `nostr:` URI scheme | planned | Deep links from other apps |
 | [NIP-25](https://github.com/nostr-protocol/nips/blob/master/25.md) | Reactions | 🔌 | Likes, emoji reactions |
 | [NIP-36](https://github.com/nostr-protocol/nips/blob/master/36.md) | Sensitive content | planned | Content warnings |
-| [NIP-42](https://github.com/nostr-protocol/nips/blob/master/42.md) | Relay authentication | 🚧 | Implemented for local-key accounts; skipped for Amber (requires foreground UI) |
+| [NIP-42](https://github.com/nostr-protocol/nips/blob/master/42.md) | Relay authentication | planned | Required by nos.lol and other quality relays; on the immediate roadmap |
 | [NIP-51](https://github.com/nostr-protocol/nips/blob/master/51.md) | Lists | 🔌 | Mute lists, pin lists, bookmarks |
 | [NIP-57](https://github.com/nostr-protocol/nips/blob/master/57.md) | Lightning zaps | 🔌 | |
-| [NIP-65](https://github.com/nostr-protocol/nips/blob/master/65.md) | Relay list metadata | ✅ | Read relays fetched on login; persisted to account |
 
 ### Uncommon NIPs
 
@@ -116,6 +125,14 @@ Legend: ✅ Supported &nbsp;|&nbsp; 🚧 Partial &nbsp;|&nbsp; 🔌 Plugin &nbsp
 ## 🧩 Plugin System
 
 Bony is intentionally minimal. Extended functionality is delivered via plugins — separate APKs that implement a defined AIDL interface. The host app binds to plugin services; Android enforces process isolation.
+
+Some features that are candidates for plugins rather than core:
+- Reactions (NIP-25), zaps (NIP-57)
+- DMs — NIP-04 legacy and NIP-17 private DMs
+- Long-form content (NIP-23)
+- Feed lists (global, hashtag, curated)
+- Tor transport
+- Image/video upload (NIP-96)
 
 ### 🔐 Plugin Permissions
 
@@ -176,12 +193,22 @@ bony/
 │       │   ├── nostr/
 │       │   │   ├── Event.kt        # NIP-01 event model + UnsignedEvent
 │       │   │   ├── EventKind.kt    # Known event kind constants
-│       │   │   ├── Tag.kt          # Tag wrapper + helpers
+│       │   │   ├── Tag.kt          # Tag wrapper + NIP-10/18 helpers
 │       │   │   ├── Filter.kt       # Subscription filters
+│       │   │   ├── Nip19.kt        # bech32 encode/decode (npub, note, nevent, TLV)
 │       │   │   └── Crypto.kt       # BIP-340 Schnorr verification
+│       │   ├── account/
+│       │   │   ├── signer/         # NostrSigner, AmberSigner, LocalKeySigner, NsecBunkerSigner
+│       │   │   └── AccountRepository.kt
+│       │   ├── db/                 # Room DB: events, profiles
+│       │   ├── profile/            # ProfileRepository, ProfileContent
 │       │   └── ui/
 │       │       ├── BonyNavHost.kt
-│       │       ├── feed/           # FeedScreen, FeedViewModel, NoteCard
+│       │       ├── feed/           # FeedScreen, FeedViewModel, NoteCard, NoteContent
+│       │       ├── thread/         # ThreadScreen, ThreadViewModel
+│       │       ├── compose/        # ComposeScreen, ComposeViewModel
+│       │       ├── profile/        # ProfileScreen, ProfileViewModel
+│       │       ├── settings/       # SettingsScreen, AccountManagement, RelayManagement
 │       │       ├── onboarding/     # OnboardingScreen, OnboardingViewModel
 │       │       ├── components/     # AccountSwitcher
 │       │       └── theme/
@@ -209,16 +236,31 @@ Logs are written to the app's private storage (`filesDir/logs/bony.log`), rotate
 
 ## 🗺️ Roadmap
 
-Near-term priorities for the core app:
+### Immediate (next session)
 
-- Inline image rendering in notes
-- Relay status indicator and relay management UI
-- NIP-42 AUTH for Amber accounts (requires a non-disruptive background signing approach)
-- Feed initialisation ordering: when a local relay (e.g. Citrine) is present, the account's own notes arrive before the follow graph, causing the feed to appear anchored to the user's most recent note until remote relays respond. A relay-quorum EOSE wait would fix this.
+- **NIP-42 relay AUTH** — required by nos.lol and other quality relays; without it those relays return nothing
+- **Reply** — compose a kind-1 reply with NIP-10 `e`/`p` tags; show reply context above the compose field
+- **Quote** — compose a quote-note with `q` tag and inline `nostr:note1…` reference
+- **@mention display-name resolution** — look up `nostr:npub1…` refs in note text against the profile cache and replace with display names
 
-**Known limitations:**
+### Near-term
 
-- NIP-42 relay AUTH is silently skipped for Amber accounts because signing requires launching Amber in the foreground. If you connect to a relay that *requires* authentication (e.g. a paid or private relay), that relay will not serve you events. Local-key accounts authenticate normally.
+- Follow / unfollow profiles
+- Share profile (npub as `nostr:npub1…` URI + display name)
+- Feed lists: global feed, hashtag feeds — some may be plugins
+- Tor transport — route relay connections over Tor for privacy; plugin candidate
+
+### Deferred / companion apps
+
+- **Notifications** — [Pokey](https://github.com/KoalaSat/pokey) handles UnifiedPush-based Nostr notifications and integrates well
+- **DMs** — [0xchat](https://0xchat.com) supports NIP-04 and NIP-17 private DMs; Bony may eventually offer a basic DM plugin
+
+### Known limitations
+
+- NIP-42 relay AUTH is not yet implemented. Relays that require authentication (e.g. nos.lol, paid relays) will not serve events.
+- nsecBunker onboarding has not been tested end-to-end against a real bunker.
+- `nostr:npub1…` @mentions in note text are abbreviated but not resolved to display names.
+- Feed scroll position may not reset correctly on account switch in all cases.
 
 ---
 
