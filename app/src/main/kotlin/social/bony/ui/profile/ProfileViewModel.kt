@@ -19,6 +19,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import social.bony.account.AccountRepository
 import social.bony.account.signer.NostrSignerFactory
+import social.bony.reactions.ReactionsRepository
 import social.bony.nostr.Event
 import social.bony.nostr.EventKind
 import social.bony.nostr.Filter
@@ -37,6 +38,7 @@ class ProfileViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
     private val accountRepository: AccountRepository,
     private val signerFactory: NostrSignerFactory,
+    private val reactionsRepository: ReactionsRepository,
 ) : ViewModel() {
 
     val pubkey: String = checkNotNull(savedStateHandle["pubkey"])
@@ -61,6 +63,13 @@ class ProfileViewModel @Inject constructor(
 
     private val _isFollowLoading = MutableStateFlow(false)
     val isFollowLoading: StateFlow<Boolean> = _isFollowLoading.asStateFlow()
+
+    val reactions: StateFlow<Map<String, Set<String>>> = reactionsRepository.reactions
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
+    val activePubkey: StateFlow<String?> = accountRepository.activeAccount
+        .map { it?.pubkey }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private var notesSubId: String? = null
     private var metadataSubId: String? = null
@@ -87,6 +96,7 @@ class ProfileViewModel @Inject constructor(
                                         .distinctBy { it.id }
                                         .sortedByDescending { it.createdAt }
                                 }
+                                reactionsRepository.subscribeTo(listOf(event.id))
                             }
                         }
                     }
@@ -101,6 +111,8 @@ class ProfileViewModel @Inject constructor(
             _isLoading.update { false }
         }
     }
+
+    fun react(event: Event) = reactionsRepository.react(event)
 
     fun follow() = toggleFollow(add = true)
     fun unfollow() = toggleFollow(add = false)

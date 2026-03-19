@@ -75,10 +75,21 @@ class RelayConnection(
     }
 
     companion object {
-        fun defaultClient(): OkHttpClient = OkHttpClient.Builder()
-            .pingInterval(30, TimeUnit.SECONDS)
-            .connectTimeout(10, TimeUnit.SECONDS)
-            .readTimeout(0, TimeUnit.SECONDS) // WebSocket — no read timeout
-            .build()
+        fun defaultClient(): OkHttpClient = buildClient(useTor = false)
+
+        fun buildClient(useTor: Boolean): OkHttpClient =
+            OkHttpClient.Builder()
+                .pingInterval(30, TimeUnit.SECONDS)
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(0, TimeUnit.SECONDS) // WebSocket — no read timeout
+                .apply {
+                    if (useTor) {
+                        proxy(java.net.Proxy(
+                            java.net.Proxy.Type.SOCKS,
+                            java.net.InetSocketAddress("127.0.0.1", 9050),
+                        ))
+                    }
+                }
+                .build()
     }
 }

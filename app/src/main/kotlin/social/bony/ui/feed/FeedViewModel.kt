@@ -19,6 +19,8 @@ import kotlinx.coroutines.launch
 import social.bony.account.Account
 import social.bony.account.AccountRepository
 import social.bony.db.EventRepository
+import social.bony.reactions.ReactionsRepository
+import social.bony.settings.AppSettings
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
@@ -55,6 +57,8 @@ class FeedViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
     private val eventRepository: EventRepository,
     private val signerFactory: NostrSignerFactory,
+    private val reactionsRepository: ReactionsRepository,
+    private val appSettings: AppSettings,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FeedUiState())
@@ -71,6 +75,12 @@ class FeedViewModel @Inject constructor(
 
     private val _quotedEvents = MutableStateFlow<Map<String, Event>>(emptyMap())
     val quotedEvents: StateFlow<Map<String, Event>> = _quotedEvents.asStateFlow()
+
+    val reactions: StateFlow<Map<String, Set<String>>> = reactionsRepository.reactions
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
+    val torEnabled: StateFlow<Boolean> = appSettings.torEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     val activeAccount: StateFlow<Account?> = accountRepository.activeAccount
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
@@ -141,6 +151,8 @@ class FeedViewModel @Inject constructor(
                 .onFailure { e -> Timber.w(e, "Boost failed") }
         }
     }
+
+    fun react(event: Event) = reactionsRepository.react(event)
 
     // ── Feed loading ──────────────────────────────────────────────────────────
 
@@ -406,6 +418,7 @@ class FeedViewModel @Inject constructor(
         }
         fetchQuotesForEvents(listOf(event))
         fetchProfilesForMentions(listOf(event))
+        reactionsRepository.subscribeTo(listOf(event.id))
     }
 
     /** Flush buffered events into the UI all at once, sorted by recency, then scroll to top. */
@@ -421,6 +434,7 @@ class FeedViewModel @Inject constructor(
         _scrollToTop.tryEmit(Unit)
         fetchQuotesForEvents(events)
         fetchProfilesForMentions(events)
+        reactionsRepository.subscribeTo(events.map { it.id })
     }
 
     private fun fetchQuotesForEvents(events: List<Event>) {

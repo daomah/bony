@@ -23,13 +23,15 @@ Do the minimum well. No analytics, no tracking, no Google Services. Authenticati
 - **Thread view** — root note → gap indicator → direct parent → focused note → live replies
 - **Compose** — new notes, replies (NIP-10 `e`/`p` tags with root/reply markers), and quote-notes (`q` tag + inline ref)
 - **Boost notes** — one-tap repost (kind-6) via your active signer
+- **Reactions** — NIP-25 like button with count; optimistic update with rollback on failure; heart fills and locks once reacted
 - **Follow / unfollow** — follow or unfollow any profile; publishes updated kind-3 contact list and persists locally
 - **Share notes** — Android share sheet with note text + `nostr:note1…` URI
 - **Share profiles** — share `nostr:npub1…` URI + display name via Android share sheet
 - **@mention resolution** — `nostr:npub1…` and `nostr:nprofile1…` refs in note text resolved to display names from the profile cache
-- **Profile pages** — banner, avatar, bio, NIP-05 badge, notes feed; follow/unfollow button for other users
-- **Relay management** — live connectivity indicator in the feed top bar; add/remove relays with status dots (green/yellow/red); changes persisted to your account
+- **Profile pages** — banner, avatar, bio, NIP-05 badge, notes feed; follow/unfollow button for other users; tap abbreviated npub to copy full npub
+- **Relay management** — live connectivity indicator in the feed top bar (shield icon when Tor is active); add/remove relays with status dots (green/yellow/red); changes persisted to your account
 - **Relay AUTH** — automatic NIP-42 authentication for relays that require it (nos.lol, paid relays)
+- **Tor support** — route all relay traffic through [Orbot](https://github.com/guardianproject/orbot) SOCKS proxy; toggle in Settings; auto-enables on first launch if Orbot is already running; shield icon in top bar reflects live relay status when Tor is active
 - **Log export** — Settings → Share logs for bug reports
 
 ---
@@ -59,6 +61,7 @@ No Firebase. No Google Play Services.
 | 1 | Text Note | Stored in Room DB; displayed in feed and thread view; inline images and video; `nostr:` URI handling; reply and quote-note composing |
 | 3 | Follow List | Drives home feed subscription; persisted to account; follow/unfollow publishes updated kind-3 |
 | 6 | Repost | Rendered as embedded card with original author and content; publishing (boost) supported |
+| 7 | Reaction | NIP-25 `+` reactions tracked per event; optimistic publish with rollback; like count displayed |
 | 10002 | Relay List | Read relays extracted and connected on login; list persisted to account |
 | 22242 | Auth | Signed automatically in response to NIP-42 relay challenges |
 | 24133 | Nostr Connect | Used internally by `NsecBunkerSigner` for NIP-46 request/response |
@@ -99,7 +102,7 @@ Legend: ✅ Supported &nbsp;|&nbsp; 🚧 Partial &nbsp;|&nbsp; 🔌 Plugin &nbsp
 | [NIP-11](https://github.com/nostr-protocol/nips/blob/master/11.md) | Relay information document | planned | Relay metadata / limits |
 | [NIP-17](https://github.com/nostr-protocol/nips/blob/master/17.md) | Private direct messages | 🔌 | For DMs, [0xchat](https://0xchat.com) is the recommended companion app |
 | [NIP-21](https://github.com/nostr-protocol/nips/blob/master/21.md) | `nostr:` URI scheme | planned | Deep links from other apps |
-| [NIP-25](https://github.com/nostr-protocol/nips/blob/master/25.md) | Reactions | 🔌 | Likes, emoji reactions |
+| [NIP-25](https://github.com/nostr-protocol/nips/blob/master/25.md) | Reactions | ✅ | `+` like reactions with count; optimistic update + rollback; emoji reactions are plugin territory |
 | [NIP-36](https://github.com/nostr-protocol/nips/blob/master/36.md) | Sensitive content | planned | Content warnings |
 | [NIP-51](https://github.com/nostr-protocol/nips/blob/master/51.md) | Lists | 🔌 | Mute lists, pin lists, bookmarks; hashtag/custom feed lists |
 | [NIP-57](https://github.com/nostr-protocol/nips/blob/master/57.md) | Lightning zaps | 🔌 | |
@@ -132,11 +135,11 @@ Legend: ✅ Supported &nbsp;|&nbsp; 🚧 Partial &nbsp;|&nbsp; 🔌 Plugin &nbsp
 Bony is intentionally minimal. Extended functionality is delivered via plugins — separate APKs that implement a defined AIDL interface. The host app binds to plugin services; Android enforces process isolation.
 
 Some features that are candidates for plugins rather than core:
-- Reactions (NIP-25), zaps (NIP-57)
+- Emoji reactions beyond `+` (NIP-25 extended), zaps (NIP-57)
 - DMs — NIP-04 legacy and NIP-17 private DMs
 - Long-form content (NIP-23)
 - Hashtag feeds and custom NIP-51 feed lists
-- Tor transport
+- I2P / custom proxy transports (core exposes a transport abstraction; Tor/Orbot is the built-in implementation)
 - Image/video upload (NIP-96)
 
 ### 🔐 Plugin Permissions
@@ -207,6 +210,8 @@ bony/
 │       │   │   └── AccountRepository.kt
 │       │   ├── db/                 # Room DB: events, profiles
 │       │   ├── profile/            # ProfileRepository, ProfileContent
+│       │   ├── reactions/          # ReactionsRepository (NIP-25 kind-7, optimistic updates)
+│       │   ├── settings/           # AppSettings (DataStore), OrbotHelper, Tor transport
 │       │   └── ui/
 │       │       ├── BonyNavHost.kt
 │       │       ├── feed/           # FeedScreen (Home+Global tabs), FeedViewModel, NoteCard, NoteContent
@@ -243,14 +248,14 @@ Logs are written to the app's private storage (`filesDir/logs/bony.log`), rotate
 
 ### Near-term
 
-- Web of trust — follows-of-follows scoring for spam filtering and trust cues
-- Tor transport — route relay connections over Tor; plugin candidate
-- Hashtag feeds — plugin candidate (blocked on plugin API design)
+- **Notifications** — UnifiedPush native integration via [Pokey](https://github.com/KoalaSat/pokey): Bony registers with Pokey as a UnifiedPush client; Pokey watches relays and delivers payloads; Bony displays system notifications and deep-links into the relevant thread on tap
 - NIP-05 verification badges on profiles
+- NIP-09 event deletion
+- Hashtag feeds — plugin candidate (blocked on plugin API design)
+- Web of trust — deferred until spam is a real problem; 2-hop local filter (kind-3 already cached) is the planned core implementation; external WoT scoring (e.g. wot.nostr.band style) is a plugin
 
 ### Deferred / companion apps
 
-- **Notifications** — [Pokey](https://github.com/KoalaSat/pokey) handles UnifiedPush-based Nostr notifications and integrates well
 - **DMs** — [0xchat](https://0xchat.com) supports NIP-04 and NIP-17 private DMs; Bony may eventually offer a basic DM plugin
 
 ### Known limitations

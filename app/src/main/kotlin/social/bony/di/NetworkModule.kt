@@ -7,18 +7,15 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import okhttp3.OkHttpClient
+import kotlinx.coroutines.launch
 import social.bony.nostr.relay.RelayConnection
 import social.bony.nostr.relay.RelayPool
+import social.bony.settings.AppSettings
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
-
-    @Provides
-    @Singleton
-    fun provideOkHttpClient(): OkHttpClient = RelayConnection.defaultClient()
 
     @Provides
     @Singleton
@@ -29,9 +26,21 @@ object NetworkModule {
     @Singleton
     fun provideRelayPool(
         scope: CoroutineScope,
-        client: OkHttpClient,
-    ): RelayPool = RelayPool(
-        scope = scope,
-        connectionFactory = { url -> RelayConnection(url, client) },
-    )
+        appSettings: AppSettings,
+    ): RelayPool {
+        val pool = RelayPool(
+            scope = scope,
+            connectionFactory = { url ->
+                RelayConnection(url, RelayConnection.buildClient(appSettings.torEnabled.value))
+            },
+        )
+        // Observe tor toggle and reconnect relays with the appropriate transport.
+        // Initial emission applies the setting before any relay has connected.
+        scope.launch {
+            appSettings.torEnabled.collect { useTor ->
+                pool.updateTransport(RelayConnection.buildClient(useTor))
+            }
+        }
+        return pool
+    }
 }

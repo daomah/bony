@@ -12,6 +12,7 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.CircularProgressIndicator
@@ -30,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -59,6 +61,8 @@ fun FeedScreen(
     val profiles by viewModel.profiles.collectAsStateWithLifecycle()
     val relayStatuses by viewModel.relayStatuses.collectAsStateWithLifecycle()
     val quotedEvents by viewModel.quotedEvents.collectAsStateWithLifecycle()
+    val reactions by viewModel.reactions.collectAsStateWithLifecycle()
+    val torEnabled by viewModel.torEnabled.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val onShare = remember {
@@ -112,7 +116,20 @@ fun FeedScreen(
                         Icon(Icons.Default.Search, contentDescription = "Search")
                     }
                     IconButton(onClick = onRelayManagementClick) {
-                        social.bony.ui.settings.RelayStatusDot(overallStatus)
+                        if (torEnabled) {
+                            val shieldColor = when (overallStatus) {
+                                social.bony.nostr.relay.RelayStatus.CONNECTED    -> Color(0xFF4CAF50)
+                                social.bony.nostr.relay.RelayStatus.CONNECTING   -> Color(0xFFFFC107)
+                                social.bony.nostr.relay.RelayStatus.DISCONNECTED -> Color(0xFFF44336)
+                            }
+                            Icon(
+                                imageVector = Icons.Default.Security,
+                                contentDescription = "Tor relay status",
+                                tint = shieldColor,
+                            )
+                        } else {
+                            social.bony.ui.settings.RelayStatusDot(overallStatus)
+                        }
                     }
                     IconButton(onClick = onSettingsClick) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
@@ -143,53 +160,57 @@ fun FeedScreen(
                     text = { Text("Global") },
                 )
             }
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .nestedScroll(pullToRefreshState.nestedScrollConnection),
-        ) {
-            when {
-                uiState.isLoading && uiState.events.isEmpty() -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .nestedScroll(pullToRefreshState.nestedScrollConnection),
+            ) {
+                when {
+                    uiState.isLoading && uiState.events.isEmpty() -> {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    }
 
-                uiState.events.isEmpty() -> {
-                    Text("No notes yet.", modifier = Modifier.align(Alignment.Center))
-                }
+                    uiState.events.isEmpty() -> {
+                        Text("No notes yet.", modifier = Modifier.align(Alignment.Center))
+                    }
 
-                else -> {
-                    LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-                        items(uiState.events, key = { it.id }) { event ->
-                            NoteCard(
-                                event = event,
-                                profile = profiles[event.pubkey],
-                                profiles = profiles,
-                                quotedEvent = run {
-                                    val refId = when (event.kind) {
-                                        social.bony.nostr.EventKind.REPOST ->
-                                            event.parsedTags.firstOrNull { it.name == "e" }?.value()
-                                        else -> event.parsedTags.quotedEventId
-                                            ?: extractInlineQuoteId(event.content)
-                                    }
-                                    refId?.let { quotedEvents[it] }
-                                },
-                                onThreadClick = onThreadClick,
-                                onProfileClick = onProfileClick,
-                                onReply = onReplyClick,
-                                onBoost = viewModel::boost,
-                                onQuote = onQuoteClick,
-                                onShare = onShare,
-                            )
+                    else -> {
+                        LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+                            items(uiState.events, key = { it.id }) { event ->
+                                NoteCard(
+                                    event = event,
+                                    profile = profiles[event.pubkey],
+                                    profiles = profiles,
+                                    quotedEvent = run {
+                                        val refId = when (event.kind) {
+                                            social.bony.nostr.EventKind.REPOST ->
+                                                event.parsedTags.firstOrNull { it.name == "e" }?.value()
+                                            else -> event.parsedTags.quotedEventId
+                                                ?: extractInlineQuoteId(event.content)
+                                        }
+                                        refId?.let { quotedEvents[it] }
+                                    },
+                                    onThreadClick = onThreadClick,
+                                    onProfileClick = onProfileClick,
+                                    onReply = onReplyClick,
+                                    onBoost = viewModel::boost,
+                                    onQuote = onQuoteClick,
+                                    onLike = viewModel::react,
+                                    onShare = onShare,
+                                    reactions = reactions,
+                                    activePubkey = activeAccount?.pubkey,
+                                )
+                            }
                         }
                     }
                 }
-            }
 
-            PullToRefreshContainer(
-                state = pullToRefreshState,
-                modifier = Modifier.align(Alignment.TopCenter),
-            )
-        }
+                PullToRefreshContainer(
+                    state = pullToRefreshState,
+                    modifier = Modifier.align(Alignment.TopCenter),
+                    containerColor = Color.Transparent,
+                )
+            }
         }
     }
 }

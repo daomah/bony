@@ -30,7 +30,7 @@ private const val MAX_RECONNECT_DELAY_MS = 60_000L
  */
 class RelayPool(
     private val scope: CoroutineScope,
-    private val connectionFactory: (url: String) -> RelayConnection,
+    private var connectionFactory: (url: String) -> RelayConnection,
 ) {
     private val connections = ConcurrentHashMap<String, RelayEntry>()
     private val activeSubscriptions = ConcurrentHashMap<String, Subscription>()
@@ -56,6 +56,18 @@ class RelayPool(
         connections.remove(url)?.job?.cancel()
         _relayStatuses.update { it - url }
         Timber.d("Removed relay: $url")
+    }
+
+    /**
+     * Swap the transport (e.g. plain vs. Tor SOCKS proxy) and reconnect all
+     * existing relays so the new client takes effect immediately.
+     */
+    fun updateTransport(client: okhttp3.OkHttpClient) {
+        connectionFactory = { url -> RelayConnection(url, client) }
+        val urls = connections.keys.toList()
+        urls.forEach { removeRelay(it) }
+        urls.forEach { addRelay(it) }
+        Timber.d("Transport updated, reconnecting ${urls.size} relay(s)")
     }
 
     fun relayUrls(): Set<String> = connections.keys.toSet()

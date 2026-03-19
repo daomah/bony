@@ -17,17 +17,21 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import social.bony.nostr.Event
 import social.bony.nostr.EventKind
+import social.bony.nostr.Nip19
 import social.bony.nostr.ProfileContent
 import social.bony.nostr.quotedEventId
 import social.bony.ui.feed.NoteCard
@@ -39,12 +43,32 @@ fun ThreadScreen(
     onBack: () -> Unit,
     onProfileClick: (pubkey: String) -> Unit = {},
     onThreadClick: (eventId: String) -> Unit = {},
+    onReplyClick: (Event) -> Unit = {},
+    onQuoteClick: (Event) -> Unit = {},
     viewModel: ThreadViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val profiles by viewModel.profiles.collectAsStateWithLifecycle()
     val quotedEvents by viewModel.quotedEvents.collectAsStateWithLifecycle()
+    val reactions by viewModel.reactions.collectAsStateWithLifecycle()
+    val activePubkey by viewModel.activePubkey.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+
+    val context = LocalContext.current
+    val onShare = remember {
+        { event: Event ->
+            val noteUri = "nostr:${Nip19.hexToNote(event.id)}"
+            val shareText = buildString {
+                val text = event.content.take(280).trim()
+                if (text.isNotEmpty()) { append(text); append("\n\n") }
+                append(noteUri)
+            }
+            context.startActivity(Intent.createChooser(
+                Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, shareText) },
+                "Share note",
+            ))
+        }
+    }
 
     // Build display list: [root?, gap?, parent?, focused, replies...]
     val items = buildList {
@@ -106,6 +130,13 @@ fun ThreadScreen(
                                 },
                                 onThreadClick = onThreadClick,
                                 onProfileClick = onProfileClick,
+                                onReply = onReplyClick,
+                                onBoost = viewModel::boost,
+                                onQuote = onQuoteClick,
+                                onLike = viewModel::react,
+                                onShare = onShare,
+                                reactions = reactions,
+                                activePubkey = activePubkey,
                             )
                             ThreadItem.Gap -> GapIndicator()
                         }

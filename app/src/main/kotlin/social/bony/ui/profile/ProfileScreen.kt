@@ -2,6 +2,8 @@ package social.bony.ui.profile
 
 import android.content.Intent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -28,12 +29,18 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -66,9 +73,15 @@ fun ProfileScreen(
     val isActiveUserProfile by viewModel.isActiveUserProfile.collectAsStateWithLifecycle()
     val isFollowing by viewModel.isFollowing.collectAsStateWithLifecycle()
     val isFollowLoading by viewModel.isFollowLoading.collectAsStateWithLifecycle()
+    val reactions by viewModel.reactions.collectAsStateWithLifecycle()
+    val activePubkey by viewModel.activePubkey.collectAsStateWithLifecycle()
     val pubkey = viewModel.pubkey
 
     val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
     val onShare = remember(pubkey, profile) {
         {
             val npub = Nip19.hexToNpub(pubkey)
@@ -87,6 +100,7 @@ fun ProfileScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(profile?.bestName ?: "") },
@@ -164,6 +178,10 @@ fun ProfileScreen(
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontFamily = FontFamily.Monospace,
+                        modifier = Modifier.clickable {
+                            clipboardManager.setText(AnnotatedString(npub))
+                            scope.launch { snackbarHostState.showSnackbar("Copied npub") }
+                        },
                     )
 
                     if (profile?.nip05 != null) {
@@ -177,11 +195,13 @@ fun ProfileScreen(
 
                     if (!profile?.about.isNullOrBlank()) {
                         Spacer(Modifier.height(8.dp))
-                        Text(
-                            text = profile?.about ?: "",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
+                        SelectionContainer {
+                            Text(
+                                text = profile?.about ?: "",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
                     }
 
                     // ── Follow / Unfollow button ───────────────────────────
@@ -234,6 +254,9 @@ fun ProfileScreen(
                     profile = profile,
                     onThreadClick = onThreadClick,
                     onProfileClick = onProfileClick,
+                    onLike = viewModel::react,
+                    reactions = reactions,
+                    activePubkey = activePubkey,
                 )
             }
         }

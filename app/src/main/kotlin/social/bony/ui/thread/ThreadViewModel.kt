@@ -9,14 +9,22 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.buildJsonArray
+import social.bony.account.AccountRepository
+import social.bony.account.signer.NostrSignerFactory
 import social.bony.db.EventRepository
+import social.bony.reactions.ReactionsRepository
 import social.bony.nostr.Event
 import social.bony.nostr.EventKind
 import social.bony.nostr.Filter
 import social.bony.nostr.ProfileContent
+import social.bony.nostr.UnsignedEvent
 import social.bony.nostr.quotedEventId
 import social.bony.nostr.relay.RelayMessage
 import social.bony.ui.feed.extractInlineQuoteId
@@ -24,6 +32,7 @@ import social.bony.nostr.relay.RelayPool
 import social.bony.nostr.replyEventId
 import social.bony.nostr.rootEventId
 import social.bony.profile.ProfileRepository
+import timber.log.Timber
 import javax.inject.Inject
 
 data class ThreadUiState(
@@ -42,6 +51,9 @@ class ThreadViewModel @Inject constructor(
     private val eventRepository: EventRepository,
     private val profileRepository: ProfileRepository,
     private val pool: RelayPool,
+    private val signerFactory: NostrSignerFactory,
+    private val reactionsRepository: ReactionsRepository,
+    private val accountRepository: AccountRepository,
 ) : ViewModel() {
 
     private val eventId: String = checkNotNull(savedStateHandle["eventId"])
@@ -55,9 +67,36 @@ class ThreadViewModel @Inject constructor(
     private val _quotedEvents = MutableStateFlow<Map<String, Event>>(emptyMap())
     val quotedEvents: StateFlow<Map<String, Event>> = _quotedEvents.asStateFlow()
 
+    val reactions: StateFlow<Map<String, Set<String>>> = reactionsRepository.reactions
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
+    val activePubkey: StateFlow<String?> = accountRepository.activeAccount
+        .map { it?.pubkey }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
     init {
         viewModelScope.launch(Dispatchers.Default) { loadThread() }
     }
+
+    fun boost(event: Event) {
+        viewModelScope.launch {
+            val signer = signerFactory.forActiveAccount() ?: return@launch
+            val unsigned = UnsignedEvent(
+                pubkey = signer.pubkey,
+                kind = EventKind.REPOST,
+                content = Json.encodeToString(Event.serializer(), event),
+                tags = listOf(
+                    buildJsonArray { add("e"); add(event.id); add(""); add("mention") },
+                    buildJsonArray { add("p"); add(event.pubkey) },
+                ),
+            )
+            signer.signEvent(unsigned)
+                .onSuccess { pool.publish(it) }
+                .onFailure { e -> Timber.w(e, "Boost failed") }
+        }
+    }
+
+    fun react(event: Event) = reactionsRepository.react(event)
 
     // ── Loading ───────────────────────────────────────────────────────────────
 
@@ -116,6 +155,7 @@ class ThreadViewModel @Inject constructor(
             subscribeReplies()
             fetchProfiles(listOf(focused))
             fetchQuotesForEvents(listOf(focused))
+            reactionsRepository.subscribeTo(listOf(focused.id))
             return
         }
 
@@ -136,6 +176,7 @@ class ThreadViewModel @Inject constructor(
             val allEvents = listOfNotNull(_uiState.value.root, _uiState.value.parent, focused)
             fetchProfiles(allEvents)
             fetchQuotesForEvents(allEvents)
+            reactionsRepository.subscribeTo(allEvents.map { it.id })
             return
         }
 
@@ -165,6 +206,7 @@ class ThreadViewModel @Inject constructor(
                     val allEvents = listOfNotNull(state.root, state.parent, focused)
                     fetchProfiles(allEvents)
                     fetchQuotesForEvents(allEvents)
+                    reactionsRepository.subscribeTo(allEvents.map { it.id })
                 }
             }
         }
@@ -189,6 +231,7 @@ class ThreadViewModel @Inject constructor(
                                 state.copy(replies = updated)
                             }
                             fetchQuotesForEvents(listOf(msg.event))
+                            reactionsRepository.subscribeTo(listOf(msg.event.id))
                         }
                         msg.event.kind == EventKind.METADATA -> {
                             // Process any metadata events arriving while thread is open

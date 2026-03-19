@@ -18,9 +18,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -60,7 +63,10 @@ fun NoteCard(
     onReply: ((Event) -> Unit)? = null,
     onBoost: ((Event) -> Unit)? = null,
     onQuote: ((Event) -> Unit)? = null,
+    onLike: ((Event) -> Unit)? = null,
     onShare: ((Event) -> Unit)? = null,
+    reactions: Map<String, Set<String>> = emptyMap(),
+    activePubkey: String? = null,
     modifier: Modifier = Modifier,
 ) {
     val background = if (highlighted) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface
@@ -104,7 +110,8 @@ fun NoteCard(
                     onProfileClick = onProfileClick,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                 )
-                NoteActions(quotedEvent, onReply, onBoost, onQuote, onShare,
+                NoteActions(quotedEvent, onReply, onBoost, onQuote, onLike, onShare,
+                    reactions, activePubkey,
                     modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 4.dp))
             } else {
                 Text(
@@ -194,14 +201,15 @@ fun NoteCard(
         val parsed = remember(event.content, profiles) { parseNoteContent(event.content, profiles) }
 
         if (parsed.text.isNotEmpty()) {
-            Text(
-                text = parsed.text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                overflow = TextOverflow.Ellipsis,
-                maxLines = 12,
-                modifier = Modifier.padding(start = 50.dp),
-            )
+            SelectionContainer(modifier = Modifier.padding(start = 50.dp)) {
+                Text(
+                    text = parsed.text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 12,
+                )
+            }
         }
 
         if (parsed.mediaItems.isNotEmpty()) {
@@ -231,7 +239,9 @@ fun NoteCard(
             }
         }
 
-        NoteActions(event, onReply, onBoost, onQuote, onShare, modifier = Modifier.padding(start = 42.dp, top = 2.dp))
+        NoteActions(event, onReply, onBoost, onQuote, onLike, onShare,
+            reactions, activePubkey,
+            modifier = Modifier.padding(start = 42.dp, top = 2.dp))
     }
 
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -294,13 +304,15 @@ fun QuotedNoteCard(
 
         if (parsed.text.isNotEmpty()) {
             Spacer(Modifier.height(6.dp))
-            Text(
-                text = parsed.text,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 6,
-                overflow = TextOverflow.Ellipsis,
-            )
+            SelectionContainer {
+                Text(
+                    text = parsed.text,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 6,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
 
         if (parsed.mediaItems.isNotEmpty()) {
@@ -316,11 +328,14 @@ private fun NoteActions(
     onReply: ((Event) -> Unit)?,
     onBoost: ((Event) -> Unit)?,
     onQuote: ((Event) -> Unit)?,
+    onLike: ((Event) -> Unit)?,
     onShare: ((Event) -> Unit)?,
+    reactions: Map<String, Set<String>>,
+    activePubkey: String?,
     modifier: Modifier = Modifier,
 ) {
-    if (onReply == null && onBoost == null && onQuote == null && onShare == null) return
-    Row(modifier = modifier) {
+    if (onReply == null && onBoost == null && onQuote == null && onLike == null && onShare == null) return
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
         if (onReply != null) {
             IconButton(onClick = { onReply(event) }, modifier = Modifier.size(32.dp)) {
                 Icon(
@@ -349,6 +364,35 @@ private fun NoteActions(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp),
                 )
+            }
+        }
+        if (onLike != null) {
+            val reactors = reactions[event.id]
+            val count = reactors?.size ?: 0
+            val hasReacted = activePubkey != null && reactors?.contains(activePubkey) == true
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(
+                    onClick = { if (!hasReacted) onLike(event) },
+                    modifier = Modifier.size(32.dp),
+                    enabled = !hasReacted,
+                ) {
+                    Icon(
+                        imageVector = if (hasReacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = "Like",
+                        tint = if (hasReacted) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+                if (count > 0) {
+                    Text(
+                        text = count.toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (hasReacted) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.width(4.dp))
+                }
             }
         }
         if (onShare != null) {

@@ -89,6 +89,8 @@ fun BonyNavHost() {
                         onBack = { navController.popBackStack() },
                         onProfileClick = { pubkey -> navController.navigate("profile/$pubkey") },
                         onThreadClick = { eventId -> navController.navigate("thread/$eventId") },
+                        onReplyClick = { event -> navController.navigate("compose?replyToId=${event.id}") },
+                        onQuoteClick = { event -> navController.navigate("compose?quoteToId=${event.id}") },
                     )
                 }
                 composable(
