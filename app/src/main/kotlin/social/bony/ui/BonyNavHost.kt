@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,10 +19,12 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import social.bony.account.AccountRepository
+import social.bony.notifications.DeepLinkHandler
 import social.bony.ui.compose.ComposeScreen
 import social.bony.ui.feed.FeedScreen
 import social.bony.ui.hashtag.HashtagFeedScreen
@@ -51,6 +54,14 @@ fun BonyNavHost() {
     val viewModel: StartupViewModel = hiltViewModel()
     val startupState by viewModel.startupState.collectAsStateWithLifecycle()
     val navController = rememberNavController()
+
+    // Handle nostr: deep links and notification taps.
+    LaunchedEffect(Unit) {
+        viewModel.openThread.collect { eventId -> navController.navigate("thread/$eventId") }
+    }
+    LaunchedEffect(Unit) {
+        viewModel.openProfile.collect { pubkey -> navController.navigate("profile/$pubkey") }
+    }
 
     when (startupState) {
         StartupState.Loading -> {
@@ -164,8 +175,12 @@ sealed interface StartupState {
 @HiltViewModel
 class StartupViewModel @Inject constructor(
     accountRepository: AccountRepository,
+    deepLinkHandler: DeepLinkHandler,
 ) : ViewModel() {
     val startupState: StateFlow<StartupState> = accountRepository.activeAccount
         .map { account -> StartupState.Ready(hasAccount = account != null) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), StartupState.Loading)
+
+    val openThread: SharedFlow<String> = deepLinkHandler.openThread
+    val openProfile: SharedFlow<String> = deepLinkHandler.openProfile
 }
