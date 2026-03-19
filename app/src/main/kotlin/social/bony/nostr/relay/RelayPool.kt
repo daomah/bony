@@ -4,13 +4,19 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import social.bony.nostr.Filter
 import timber.log.Timber
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+
+enum class RelayStatus { CONNECTING, CONNECTED, DISCONNECTED }
 
 private const val RECONNECT_DELAY_MS = 5_000L
 private const val MAX_RECONNECT_DELAY_MS = 60_000L
@@ -32,6 +38,9 @@ class RelayPool(
     private val _messages = MutableSharedFlow<PoolMessage>(extraBufferCapacity = 256)
     val messages: SharedFlow<PoolMessage> = _messages.asSharedFlow()
 
+    private val _relayStatuses = MutableStateFlow<Map<String, RelayStatus>>(emptyMap())
+    val relayStatuses: StateFlow<Map<String, RelayStatus>> = _relayStatuses.asStateFlow()
+
     // ── Relay management ──────────────────────────────────────────────────────
 
     fun addRelay(url: String) {
@@ -39,11 +48,13 @@ class RelayPool(
         val connection = connectionFactory(url)
         val job = scope.launch { connectWithRetry(url, connection) }
         connections[url] = RelayEntry(connection, job)
+        _relayStatuses.update { it + (url to RelayStatus.CONNECTING) }
         Timber.d("Added relay: $url")
     }
 
     fun removeRelay(url: String) {
         connections.remove(url)?.job?.cancel()
+        _relayStatuses.update { it - url }
         Timber.d("Removed relay: $url")
     }
 
@@ -93,6 +104,7 @@ class RelayPool(
                     when (message) {
                         is RelayMessage.Connected -> {
                             delayMs = RECONNECT_DELAY_MS
+                            _relayStatuses.update { it + (url to RelayStatus.CONNECTED) }
                             activeSubscriptions.values.forEach { sub ->
                                 connection.send(ClientMessage.Req(sub.id, sub.filters))
                             }
@@ -110,6 +122,7 @@ class RelayPool(
 
             if (!connections.containsKey(url)) break
 
+            _relayStatuses.update { it + (url to RelayStatus.DISCONNECTED) }
             Timber.d("Reconnecting $url in ${delayMs}ms")
             delay(delayMs)
             delayMs = (delayMs * 2).coerceAtMost(MAX_RECONNECT_DELAY_MS)

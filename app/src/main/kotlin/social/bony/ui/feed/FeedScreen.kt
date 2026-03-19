@@ -36,12 +36,14 @@ fun FeedScreen(
     onComposeClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onProfileClick: (pubkey: String) -> Unit = {},
+    onRelayManagementClick: () -> Unit = {},
     viewModel: FeedViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val activeAccount by viewModel.activeAccount.collectAsStateWithLifecycle()
     val accounts by viewModel.accounts.collectAsStateWithLifecycle()
     val profiles by viewModel.profiles.collectAsStateWithLifecycle()
+    val relayStatuses by viewModel.relayStatuses.collectAsStateWithLifecycle()
 
     val listState = rememberLazyListState()
     val pullToRefreshState = rememberPullToRefreshState()
@@ -70,6 +72,14 @@ fun FeedScreen(
                     )
                 },
                 actions = {
+                    val overallStatus = when {
+                        relayStatuses.values.any { it == social.bony.nostr.relay.RelayStatus.CONNECTED }  -> social.bony.nostr.relay.RelayStatus.CONNECTED
+                        relayStatuses.values.any { it == social.bony.nostr.relay.RelayStatus.CONNECTING } -> social.bony.nostr.relay.RelayStatus.CONNECTING
+                        else -> social.bony.nostr.relay.RelayStatus.DISCONNECTED
+                    }
+                    IconButton(onClick = onRelayManagementClick) {
+                        social.bony.ui.settings.RelayStatusDot(overallStatus)
+                    }
                     IconButton(onClick = onSettingsClick) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }

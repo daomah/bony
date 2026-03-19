@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -28,6 +29,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onAddAccount: () -> Unit,
     onAccountManagement: () -> Unit,
+    onRelayManagement: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -54,6 +56,15 @@ fun SettingsScreen(
                 supportingContent = { Text("Add or remove accounts") },
                 leadingContent = { Icon(Icons.Default.AccountCircle, contentDescription = null) },
                 modifier = Modifier.clickable(onClick = onAccountManagement),
+            )
+
+            HorizontalDivider()
+
+            ListItem(
+                headlineContent = { Text("Relay management") },
+                supportingContent = { Text("View and manage relay connections") },
+                leadingContent = { Icon(Icons.Default.Settings, contentDescription = null) },
+                modifier = Modifier.clickable(onClick = onRelayManagement),
             )
 
             HorizontalDivider()

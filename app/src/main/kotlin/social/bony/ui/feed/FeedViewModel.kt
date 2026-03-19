@@ -26,6 +26,7 @@ import social.bony.nostr.ProfileContent
 import social.bony.nostr.pubkeys
 import social.bony.nostr.relay.RelayMessage
 import social.bony.nostr.relay.RelayPool
+import social.bony.nostr.relay.RelayStatus
 import social.bony.profile.ProfileRepository
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -56,6 +57,9 @@ class FeedViewModel @Inject constructor(
 
     val activeAccount: StateFlow<Account?> = accountRepository.activeAccount
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    val relayStatuses: StateFlow<Map<String, RelayStatus>> = pool.relayStatuses
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
     val accounts = accountRepository.accounts
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())

@@ -25,6 +25,7 @@ import social.bony.ui.feed.FeedScreen
 import social.bony.ui.onboarding.OnboardingScreen
 import social.bony.ui.profile.ProfileScreen
 import social.bony.ui.settings.AccountManagementScreen
+import social.bony.ui.settings.RelayManagementScreen
 import social.bony.ui.settings.SettingsScreen
 import social.bony.ui.thread.ThreadScreen
 import javax.inject.Inject
@@ -37,6 +38,7 @@ private const val ROUTE_SETTINGS = "settings"
 private const val ROUTE_PROFILE = "profile/{pubkey}"
 private const val ROUTE_ADD_ACCOUNT = "add_account"
 private const val ROUTE_ACCOUNT_MANAGEMENT = "account_management"
+private const val ROUTE_RELAY_MANAGEMENT = "relay_management"
 
 @Composable
 fun BonyNavHost() {
@@ -70,6 +72,7 @@ fun BonyNavHost() {
                         onComposeClick = { navController.navigate(ROUTE_COMPOSE) },
                         onSettingsClick = { navController.navigate(ROUTE_SETTINGS) },
                         onProfileClick = { pubkey -> navController.navigate("profile/$pubkey") },
+                        onRelayManagementClick = { navController.navigate(ROUTE_RELAY_MANAGEMENT) },
                     )
                 }
                 composable(ROUTE_THREAD) {
@@ -86,7 +89,11 @@ fun BonyNavHost() {
                         onBack = { navController.popBackStack() },
                         onAddAccount = { navController.navigate(ROUTE_ADD_ACCOUNT) },
                         onAccountManagement = { navController.navigate(ROUTE_ACCOUNT_MANAGEMENT) },
+                        onRelayManagement = { navController.navigate(ROUTE_RELAY_MANAGEMENT) },
                     )
+                }
+                composable(ROUTE_RELAY_MANAGEMENT) {
+                    RelayManagementScreen(onBack = { navController.popBackStack() })
                 }
                 composable(ROUTE_ACCOUNT_MANAGEMENT) {
                     AccountManagementScreen(
