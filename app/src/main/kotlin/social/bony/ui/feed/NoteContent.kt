@@ -37,8 +37,9 @@ private val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "gif", "webp", "bmp")
 private val VIDEO_EXTENSIONS = setOf("mp4", "webm", "mov", "m4v", "mkv")
 private val URL_REGEX = Regex("""https?://\S+""")
 
-// Matches any nostr: URI — note1, nevent1, npub1, nprofile1, naddr1, etc.
-private val NOSTR_URI_REGEX = Regex("""nostr:(note1|nevent1|npub1|nprofile1|naddr1)\S*""")
+// Matches any nostr: URI — only valid bech32 chars [a-z0-9] after the prefix,
+// so trailing punctuation (!!⚡ etc.) is not swallowed into the entity.
+private val NOSTR_URI_REGEX = Regex("""nostr:(note1|nevent1|npub1|nprofile1|naddr1)[a-z0-9]*""")
 
 sealed class MediaItem {
     data class Image(val url: String) : MediaItem()
