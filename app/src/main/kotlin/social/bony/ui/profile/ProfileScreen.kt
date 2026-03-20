@@ -1,6 +1,8 @@
 package social.bony.ui.profile
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -204,7 +206,7 @@ fun ProfileScreen(
                         }
                     }
 
-                    // ── Follow / Unfollow button ───────────────────────────
+                    // ── Follow / Unfollow / Message buttons ───────────────
                     if (!isActiveUserProfile) {
                         Spacer(Modifier.height(12.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -229,6 +231,23 @@ fun ProfileScreen(
                                 ) {
                                     Text("Follow")
                                 }
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            OutlinedButton(onClick = {
+                                val npub = Nip19.hexToNpub(pubkey)
+                                try {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, Uri.parse("nostr:$npub"))
+                                    )
+                                } catch (e: ActivityNotFoundException) {
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            "No DM app found — install 0xchat or another Nostr client"
+                                        )
+                                    }
+                                }
+                            }) {
+                                Text("Message")
                             }
                         }
                     }
